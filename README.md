@@ -12,10 +12,11 @@ Track grades & GPA, manage your timetable, plan assignments, and access live Can
 
 ## Features
 
+- **Dashboard** — At-a-glance GPA summary, today's schedule, upcoming deadlines, course status cards, and quick stats
 - **Grade Calculator** — Weighted categories, drop-lowest, running vs projected grade, "What do I need?" reverse calc
 - **Multi-GPA Scales** — Standard Ontario 4.0, York New 4.0 (A = 3.90 at 85–89%), York Legacy 9.0
-- **Timetable** — Full weekly grid on desktop; day view + day picker on mobile
-- **Assignment Planner** — Tasks grouped by urgency (Overdue / Today / This Week / Later), mini calendar
+- **Timetable** — Full weekly grid on desktop; day view + day picker on mobile; printable view
+- **Assignment Planner** — Tasks grouped by urgency (Overdue / Today / This Week / Later), mini deadline calendar
 - **AI Outline Parser** — Upload a course outline PDF or image; Gemini extracts schedule, assessments & deadlines automatically
 - **Live Immigration Hub** — Fetched live from official Canada.ca pages (study permit, work rights, PGWP, OHIP)
 - **International vs Domestic mode** — Immigration hub for international students; OSAP/OHIP resource page for domestic
@@ -23,113 +24,78 @@ Track grades & GPA, manage your timetable, plan assignments, and access live Can
 - **Study Timer** — Pomodoro 25/5 per course, tracks cumulative study hours
 - **Course Notes** — Per-course notes field, collapsed by default
 - **PDF Transcript Export** — Desktop-only; generates formatted PDF with grades & GPA
+- **Settings** — Profile, school selector, GPA scale switcher, theme, study permit expiry tracker, danger zone (clear data)
 - **PWA** — Installable on iPhone & Android, works offline
 
 ---
 
-## For Me (Quick Start)
+## Quick Start
 
 ```bash
-# Already cloned? Just make sure .env has your Gemini key
-cp .env.example .env
-# Edit .env: set GEMINI_API_KEY=your_key
+# Clone and enter the directory
+git clone <repo-url>
+cd ultraGrade
 
-# Install everything
+# Set up environment variables
+cp .env.example .env
+# Edit .env: set GEMINI_API_KEY=your_key_here
+
+# Install dependencies (all three locations)
 npm install
 npm install --prefix server
 npm install --prefix client
 
-# Run dev
+# Run dev servers
 npm run dev
-# Client: http://localhost:5173
-# Server: http://localhost:3001
+# Frontend: http://localhost:5173
+# Backend:  http://localhost:3001
+# Health:   http://localhost:3001/api/health
 ```
 
 ---
 
-## For Collaborators & Friends
-
-### Prerequisites
-
-- **Node.js** v18 or higher ([download](https://nodejs.org))
-- **npm** v9+
-- A **Gemini API key** (free tier works) from [Google AI Studio](https://aistudio.google.com)
-
-### Installation
-
-```bash
-# 1. Clone the repo
-git clone <repo-url>
-cd ultraGrade
-
-# 2. Set up environment variables
-cp .env.example .env
-```
-
-Open `.env` and fill in:
-
-```env
-GEMINI_API_KEY=your_gemini_api_key_here
-PORT=3001
-CLIENT_URL=http://localhost:5173
-```
-
-```bash
-# 3. Install dependencies (all three locations)
-npm install                    # root (installs concurrently)
-npm install --prefix server    # backend
-npm install --prefix client    # frontend
-```
-
-### Running the App
-
-```bash
-npm run dev
-```
-
-This starts both servers concurrently:
-- **Frontend**: http://localhost:5173
-- **Backend API**: http://localhost:3001
-- **Health check**: http://localhost:3001/api/health
-
-### Environment Variables
+## Environment Variables
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `GEMINI_API_KEY` | Yes | Google AI Studio API key for course outline parsing |
+| `GEMINI_API_KEY` | Yes | Google AI Studio key for outline parsing |
 | `PORT` | No | Backend port (default: `3001`) |
 | `CLIENT_URL` | No | Frontend origin for CORS (default: `http://localhost:5173`) |
 
+Get a free Gemini key at [aistudio.google.com](https://aistudio.google.com).
+
 ---
 
-### Project Structure
+## Project Structure
 
 ```
 ultraGrade/
-├── server/                    # Node.js + Express backend
-│   ├── index.js               # Express app entry point
+├── server/
+│   ├── index.js                   # Express app, CORS, routes, error handler
 │   ├── routes/
-│   │   ├── parseOutline.js    # POST /api/parse-outline
-│   │   └── immigration.js     # GET /api/immigration/:section
+│   │   ├── parseOutline.js        # POST /api/parse-outline (multer + Gemini)
+│   │   └── immigration.js         # GET /api/immigration/:section (proxy + cache)
 │   └── utils/
-│       ├── geminiParser.js    # Gemini AI integration
-└──       └── immigrationFetcher.js  # Live immigration data proxy
-├── client/                    # React + Vite frontend
+│       ├── geminiParser.js        # Gemini API call, JSON extraction, prompt
+│       └── immigrationFetcher.js  # Axios fetch + HTML parse + 24hr cache
+├── client/
 │   ├── src/
-│   │   ├── pages/             # One file per page/route
-│   │   ├── components/        # Reusable UI components
-│   │   ├── context/           # AppContext (all app state)
-│   │   ├── hooks/             # useLocalStorage, useGradeCalc
-│   │   ├── utils/             # Grade math, date helpers, color helpers
-│   │   └── data/              # GPA scales, university RMP IDs
-│   └── vite.config.js
-├── package.json               # Root: runs both servers via concurrently
-└── .env.example               # Environment variable template
+│   │   ├── pages/                 # Dashboard, Grades, Timetable, Planner,
+│   │   │                          #   Immigration, StudentResources, Settings, Onboarding
+│   │   ├── components/            # grades/, timetable/, planner/, dashboard/,
+│   │   │                          #   immigration/, layout/, onboarding/, ui/
+│   │   ├── context/               # AppContext.jsx — all app state + CRUD
+│   │   ├── hooks/                 # useLocalStorage, useGradeCalc
+│   │   ├── utils/                 # gradeCalculations, dateHelpers, colorHelpers
+│   │   └── data/                  # gpaScales.js, universities.js
+│   └── vite.config.js             # PWA plugin, /api proxy → localhost:3001
+├── package.json                   # Root: runs both servers via concurrently
+└── .env.example                   # Environment variable template
 ```
 
 ---
 
-### Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
@@ -149,15 +115,15 @@ ultraGrade/
 
 ---
 
-## GPA Scales Supported
+## GPA Scales
 
-| Scale | Used By | Key Info |
-|-------|---------|----------|
-| Standard Ontario 4.0 | U of T, Waterloo, Western, Queen's, McMaster... | A+/A ≥ 85% = 4.00 |
-| York New 4.0 | York University (current) | A = 3.90 at 85–89% (York-specific) |
+| Scale | Used By | Key Detail |
+|-------|---------|------------|
+| Standard Ontario 4.0 | U of T, Waterloo, Western, Queen's, McMaster, Carleton, Ottawa | A+/A ≥ 85% = 4.00 |
+| York New 4.0 | York University (current) | A = 3.90 at 85–89% (York-specific split) |
 | York Legacy 9.0 | York University (pre-2009) | Max 9.00; A+ = 9.00, A = 8.00 |
 
-Select your scale in Settings. It auto-suggests based on your school.
+Select your scale in **Settings**. It auto-suggests based on the school you pick.
 
 ---
 
@@ -166,45 +132,42 @@ Select your scale in Settings. It auto-suggests based on your school.
 On the Grades page, click **"Import from Outline"** when adding a course.
 
 1. Upload a `.pdf`, `.png`, `.jpg`, or `.jpeg` of your course syllabus
-2. Gemini AI extracts: course name/code, professor, credit hours, weekly schedule, assessment weights, and deadline dates
-3. Review and confirm a preview before anything is imported
-4. On confirm: course is created, timetable entries are added, and tasks are created automatically
+2. Gemini extracts: course name/code, professor, credit hours, weekly schedule, assessment weights, and deadline dates
+3. Review and confirm a preview before anything is saved
+4. On confirm: course is created, timetable entries added, and tasks created automatically
 
-> Uses `gemini-2.0-flash-lite` by default (cheap + fast). Upgrade to `gemini-1.5-pro` in `server/utils/geminiParser.js` for better accuracy.
+> Uses `gemini-2.0-flash-lite` by default (cheap + fast). Switch to `gemini-1.5-pro` in `server/utils/geminiParser.js` for better accuracy on complex outlines.
 
 ---
 
 ## Immigration Hub
 
-> For international students only (switchable in Settings)
+> For international students only — toggle in Settings under Student Type.
 
-Information is fetched live from official government websites every 24 hours:
-- **Study Permit** conditions
-- **Work Rights** while studying (24 hrs/week off-campus during academic sessions)
-- **PGWP** (Post-Graduation Work Permit) eligibility
-- **OHIP** health coverage eligibility
+Fetched live from official government sources every 24 hours:
 
-Each section shows the source URL, last-fetched timestamp, and a Refresh button. If the fetch fails, cached fallback content is shown with a warning.
+- **Study Permit** — conditions and restrictions
+- **Work Rights** — off-campus hours during academic sessions (24 hrs/week)
+- **PGWP** — Post-Graduation Work Permit eligibility
+- **OHIP** — provincial health coverage eligibility
 
-> Always verify with your school's international student office for your specific situation.
+Each section shows the source URL, last-fetched timestamp, and a Refresh button. Cached fallback content is shown if the live fetch fails.
+
+> Always verify specifics with your school's international student office.
 
 ---
 
 ## Install on Your Phone (PWA)
 
-### iPhone / iPad (iOS)
-1. Open the app in **Safari** at `http://localhost:5173`
-2. Tap the **Share** button (box with arrow)
-3. Tap **"Add to Home Screen"**
-4. Tap **Add**
+### iPhone / iPad
+1. Open the app in **Safari**
+2. Tap **Share** → **Add to Home Screen** → **Add**
 
 ### Android
-1. Open the app in **Chrome** at `http://localhost:5173`
-2. Tap the **three-dot menu**
-3. Tap **"Add to Home Screen"** or **"Install app"**
-4. Tap **Install**
+1. Open the app in **Chrome**
+2. Tap **⋮** → **Add to Home Screen** / **Install app** → **Install**
 
-The app works offline once installed — your grades, timetable, and tasks are always accessible.
+The app works offline once installed — grades, timetable, and tasks are always accessible.
 
 ---
 
@@ -212,11 +175,11 @@ The app works offline once installed — your grades, timetable, and tasks are a
 
 1. Fork the repo
 2. Create a branch: `git checkout -b feature/your-feature`
-3. Make changes — read `CLAUDE.md` for architecture details
+3. Make changes — read `CLAUDE.md` for architecture and data model details
 4. Test locally with `npm run dev`
 5. Open a pull request
 
-Keep changes focused. If you're adding a new feature, update `CLAUDE.md` with any architecture changes.
+If you add a feature that changes architecture, data models, or routing, update `CLAUDE.md` in the same PR.
 
 ---
 
