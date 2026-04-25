@@ -25,7 +25,7 @@ function AddSemesterModal({ open, onClose }) {
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Create Semester" size="sm">
+    <Modal isOpen={open} onClose={onClose} title="Create Semester" size="sm">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="form-control">
           <label className="label"><span className="label-text">Semester Name</span></label>
