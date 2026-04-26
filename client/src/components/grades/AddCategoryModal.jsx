@@ -28,7 +28,7 @@ export default function AddCategoryModal({ isOpen, onClose, courseId, editingCat
     <Modal isOpen={isOpen} onClose={onClose} title={editingCategory ? 'Edit Category' : 'Add Grade Category'} size="sm">
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
         <div className="alert alert-info py-2 text-sm">
-          <span>Weight budget: <strong>{usedWeight}% used</strong> · <strong>{remaining}% remaining</strong></span>
+          <span>Weight budget: <strong>{+usedWeight.toFixed(2)}% used</strong> · <strong>{+remaining.toFixed(2)}% remaining</strong></span>
         </div>
 
         <div className="form-control">
@@ -44,9 +44,9 @@ export default function AddCategoryModal({ isOpen, onClose, courseId, editingCat
             <span className="label-text-alt text-base-content/50">Max: {remaining}%</span>
           </label>
           <input
-            {...register('weight', { required: true, min: 1, max: remaining + (editingCategory?.weight || 0), valueAsNumber: true })}
-            type="number" className="input input-bordered input-sm" />
-          {errors.weight && <span className="text-error text-xs">Weight must be between 1 and {remaining}%</span>}
+            {...register('weight', { required: true, min: 0.01, max: remaining + (editingCategory?.weight || 0), valueAsNumber: true })}
+            type="number" step="0.01" className="input input-bordered input-sm" />
+          {errors.weight && <span className="text-error text-xs">Weight must be between 0.01 and {+remaining.toFixed(2)}%</span>}
         </div>
 
         <div className="form-control">

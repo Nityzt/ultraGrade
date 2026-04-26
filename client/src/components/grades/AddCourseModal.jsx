@@ -51,7 +51,7 @@ export default function AddCourseModal({ isOpen, onClose, editingCourse, onImpor
           <div className="form-control">
             <label className="label"><span className="label-text">Credit Hours</span></label>
             <input {...register('creditHours', { required: true, min: 0.5, max: 12 })}
-              type="number" step="0.5" className="input input-bordered input-sm" />
+              type="number" step="0.01" className="input input-bordered input-sm" />
           </div>
         </div>
 
@@ -70,7 +70,7 @@ export default function AddCourseModal({ isOpen, onClose, editingCourse, onImpor
         <div className="form-control">
           <label className="label"><span className="label-text">Target Grade (%)</span></label>
           <input {...register('targetGrade', { min: 0, max: 100 })}
-            type="number" className="input input-bordered input-sm" />
+            type="number" step="0.01" className="input input-bordered input-sm" />
         </div>
 
         <div className="form-control">
