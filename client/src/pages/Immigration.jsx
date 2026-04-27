@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
 import axios from 'axios';
 import InfoSection from '../components/immigration/InfoSection';
@@ -24,10 +24,11 @@ function useImmigrationData() {
   const [data, setData] = useState({});
   const [loading, setLoading] = useState({});
 
-  const fetch = useCallback(async (section) => {
+  const fetchSection = useCallback(async (section, force = false) => {
     setLoading(l => ({ ...l, [section]: true }));
     try {
-      const res = await axios.get(`/api/immigration/${section}`);
+      const url = force ? `/api/immigration/${section}?force=true` : `/api/immigration/${section}`;
+      const res = await axios.get(url);
       setData(d => ({ ...d, [section]: res.data }));
     } catch (err) {
       setData(d => ({
@@ -40,22 +41,19 @@ function useImmigrationData() {
   }, []);
 
   const fetchAll = useCallback(() => {
-    SECTIONS.forEach(s => fetch(s.key));
-  }, [fetch]);
+    SECTIONS.forEach(s => fetchSection(s.key));
+  }, [fetchSection]);
 
-  return { data, loading, fetch, fetchAll };
+  return { data, loading, fetchSection, fetchAll };
 }
 
 export default function Immigration() {
   const { settings } = useApp();
-  const { data, loading, fetch, fetchAll } = useImmigrationData();
-  const [initialFetch, setInitialFetch] = useState(false);
+  const { data, loading, fetchSection, fetchAll } = useImmigrationData();
 
-  if (!initialFetch) {
-    setInitialFetch(true);
-    // defer to avoid render-during-render
-    setTimeout(() => fetchAll(), 0);
-  }
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-3xl">
@@ -102,7 +100,7 @@ export default function Immigration() {
             icon={icon}
             data={data[key]}
             loading={loading[key]}
-            onRefresh={() => fetch(key)}
+            onRefresh={() => fetchSection(key, true)}
           />
         ))}
       </div>
