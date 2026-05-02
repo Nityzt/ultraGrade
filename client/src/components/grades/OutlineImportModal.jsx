@@ -3,9 +3,11 @@ import { Upload, CheckCircle, AlertCircle, Loader, FileText } from 'lucide-react
 import Modal from '../ui/Modal.jsx';
 import axios from 'axios';
 import { useApp } from '../../context/AppContext.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
 
 export default function OutlineImportModal({ isOpen, onClose }) {
   const { importFromOutline } = useApp();
+  const { session } = useAuth();
   const [status, setStatus] = useState('idle'); // idle | loading | preview | error
   const [parsed, setParsed] = useState(null);
   const [error, setError] = useState('');
@@ -19,7 +21,10 @@ export default function OutlineImportModal({ isOpen, onClose }) {
       const formData = new FormData();
       formData.append('outline', file);
       const res = await axios.post('/api/parse-outline', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        }
       });
       if (res.data.success) {
         setParsed(res.data.data);
