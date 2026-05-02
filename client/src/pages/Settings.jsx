@@ -1,10 +1,12 @@
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext.jsx';
 import { useForm } from 'react-hook-form';
 import { useEffect, useState } from 'react';
 import { ONTARIO_UNIVERSITIES, getDefaultGpaScale } from '../data/universities';
 import { GPA_SCALES } from '../data/gpaScales';
 import { Palette, User, Globe, Book, Moon, Sun, Bell } from 'lucide-react';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
+import { supabase } from '../lib/supabase.js';
 
 const GPA_SCALE_OPTIONS = [
   { value: 'standard-4.0', label: 'Standard Ontario 4.0 (U of T, Waterloo, Western…)' },
@@ -14,6 +16,7 @@ const GPA_SCALE_OPTIONS = [
 
 export default function Settings() {
   const { settings, updateSettings, updateSchool, setStudentType, semesters, deleteSemester, activeSemester } = useApp();
+  const { user } = useAuth();
   const [clearConfirm, setClearConfirm] = useState(false);
   const { register, handleSubmit, watch, setValue, reset } = useForm({ defaultValues: settings });
 
@@ -36,8 +39,17 @@ export default function Settings() {
     setValue('gpaScale', suggested);
   };
 
-  const clearAllData = () => {
+  const clearAllData = async () => {
     localStorage.clear();
+    if (user) {
+      await Promise.all([
+        supabase.from('semesters').delete().eq('user_id', user.id),
+        supabase.from('timetable_entries').delete().eq('user_id', user.id),
+        supabase.from('tasks').delete().eq('user_id', user.id),
+        supabase.from('study_hours').delete().eq('user_id', user.id),
+        supabase.from('profiles').upsert({ id: user.id }, { onConflict: 'id' }),
+      ]);
+    }
     window.location.reload();
   };
 

@@ -48,6 +48,20 @@ export default function Planner() {
                 description="Add assignments, exams, and personal tasks to track deadlines."
                 action={<button onClick={() => setModal(true)} className="btn btn-primary btn-sm gap-1"><Plus size={14} /> Add Task</button>}
               />
+            ) : filtered.length === 0 ? (
+              <EmptyState
+                icon={ClipboardList}
+                title="No matching tasks"
+                description="Try adjusting your filters or clearing the search."
+                action={
+                  <button
+                    onClick={() => { setFilter({ type: 'all', status: 'active', search: '', courseId: '' }); setSelectedDay(null); }}
+                    className="btn btn-ghost btn-sm"
+                  >
+                    Clear filters
+                  </button>
+                }
+              />
             ) : (
               <TaskList
                 tasks={filtered}
