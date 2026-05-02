@@ -1,7 +1,10 @@
-import { createContext, useContext, useCallback } from 'react';
+import { createContext, useContext, useCallback, useEffect, useState } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
 import { randomCourseColor } from '../utils/colorHelpers.js';
 import { getDefaultGpaScale } from '../data/universities.js';
+import { useAuth } from './AuthContext.jsx';
+import { loadAll } from '../hooks/useSupabaseLoader.js';
+import * as sync from '../hooks/useSupabaseSync.js';
 
 const AppContext = createContext(null);
 
@@ -22,28 +25,53 @@ const DEFAULT_SETTINGS = {
 };
 
 export function AppProvider({ children }) {
+  const { user } = useAuth();
+
   const [semesters, setSemesters] = useLocalStorage('ultragrade_semesters', []);
   const [courses, setCourses] = useLocalStorage('ultragrade_courses', []);
   const [timetableEntries, setTimetableEntries] = useLocalStorage('ultragrade_timetable', []);
   const [tasks, setTasks] = useLocalStorage('ultragrade_tasks', []);
   const [settings, setSettings] = useLocalStorage('ultragrade_settings', DEFAULT_SETTINGS);
   const [studyHours, setStudyHours] = useLocalStorage('ultragrade_study_hours', {});
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [syncError, setSyncError] = useState(null);
 
-  // Derived
+  // Load all data from Supabase when user signs in
+  useEffect(() => {
+    if (!user) { setIsLoaded(true); return; }
+    setIsLoaded(false);
+    loadAll(user.id).then(({ semesters: s, courses: c, timetableEntries: te, tasks: t, settings: sets, studyHours: sh, error }) => {
+      if (error) { setIsLoaded(true); return; }
+      if (s)   setSemesters(s);
+      if (c)   setCourses(c);
+      if (te)  setTimetableEntries(te);
+      if (t)   setTasks(t);
+      if (sets) setSettings(prev => ({ ...prev, ...sets }));
+      if (sh)  setStudyHours(sh);
+      setIsLoaded(true);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  const onSyncError = (msg) => setSyncError(msg);
+
+  // Derived state
   const activeSemester = semesters.find(s => s.id === settings.activeSemesterId) || semesters[0] || null;
   const activeCourses = courses.filter(c => c.semesterId === activeSemester?.id);
   const activeTasks = tasks.filter(t => t.semesterId === activeSemester?.id);
   const activeTimetable = timetableEntries.filter(e => e.semesterId === activeSemester?.id);
 
-  // Settings
+  // ── Settings ──────────────────────────────────────────────────────────────
   const updateSettings = useCallback((updates) => {
     setSettings(prev => {
       const next = { ...prev, ...updates };
-      // Apply theme to html element
       if (updates.theme) document.documentElement.setAttribute('data-theme', updates.theme);
+      if (user) sync.upsertProfile(next, user.id).then(({ error }) => {
+        if (error) onSyncError('Failed to save settings');
+      });
       return next;
     });
-  }, [setSettings]);
+  }, [setSettings, user]);
 
   const setStudentType = useCallback((type) => updateSettings({ studentType: type }), [updateSettings]);
 
@@ -52,32 +80,47 @@ export function AppProvider({ children }) {
     updateSettings({ school, gpaScale: defaultScale });
   }, [updateSettings]);
 
-  // Semester CRUD
+  // ── Semesters ─────────────────────────────────────────────────────────────
   const addSemester = useCallback((data) => {
     const sem = { id: generateId(), name: '', startDate: '', endDate: '', ...data };
     setSemesters(prev => [...prev, sem]);
     updateSettings({ activeSemesterId: sem.id });
+    if (user) sync.insertSemester(sem, user.id).then(({ error }) => {
+      if (error) { setSemesters(prev => prev.filter(s => s.id !== sem.id)); onSyncError('Failed to save semester'); }
+    });
     return sem;
-  }, [setSemesters, updateSettings]);
+  }, [setSemesters, updateSettings, user]);
 
   const updateSemester = useCallback((id, data) => {
     setSemesters(prev => prev.map(s => s.id === id ? { ...s, ...data } : s));
-  }, [setSemesters]);
+    if (user) sync.updateSemester(id, data, user.id).then(({ error }) => {
+      if (error) onSyncError('Failed to update semester');
+    });
+  }, [setSemesters, user]);
 
   const deleteSemester = useCallback((id) => {
+    const deletedCourseIds = courses.filter(c => c.semesterId === id).map(c => c.id);
     setSemesters(prev => prev.filter(s => s.id !== id));
     setCourses(prev => prev.filter(c => c.semesterId !== id));
     setTasks(prev => prev.filter(t => t.semesterId !== id));
     setTimetableEntries(prev => prev.filter(e => e.semesterId !== id));
+    setStudyHours(prev => {
+      const next = { ...prev };
+      deletedCourseIds.forEach(cid => delete next[cid]);
+      return next;
+    });
     if (settings.activeSemesterId === id) {
       const remaining = semesters.filter(s => s.id !== id);
       updateSettings({ activeSemesterId: remaining[0]?.id || null });
     }
-  }, [setSemesters, setCourses, setTasks, setTimetableEntries, settings, semesters, updateSettings]);
+    if (user) sync.deleteSemester(id, user.id).then(({ error }) => {
+      if (error) onSyncError('Failed to delete semester');
+    });
+  }, [setSemesters, setCourses, setTasks, setTimetableEntries, setStudyHours, settings, semesters, courses, updateSettings, user]);
 
   const setActiveSemester = useCallback((id) => updateSettings({ activeSemesterId: id }), [updateSettings]);
 
-  // Course CRUD
+  // ── Courses ───────────────────────────────────────────────────────────────
   const addCourse = useCallback((data) => {
     const course = {
       id: generateId(),
@@ -92,31 +135,50 @@ export function AppProvider({ children }) {
       finalGradeOverride: null,
       outlineUploaded: false,
       notes: '',
-      studyTimerSeconds: 0,
       ...data
     };
     setCourses(prev => [...prev, course]);
+    if (user) sync.insertCourse(course, user.id).then(({ error }) => {
+      if (error) { setCourses(prev => prev.filter(c => c.id !== course.id)); onSyncError('Failed to save course'); }
+    });
     return course;
-  }, [setCourses, activeSemester]);
+  }, [setCourses, activeSemester, user]);
 
   const updateCourse = useCallback((id, data) => {
     setCourses(prev => prev.map(c => c.id === id ? { ...c, ...data } : c));
-  }, [setCourses]);
+    if (user) sync.updateCourse(id, data, user.id).then(({ error }) => {
+      if (error) onSyncError('Failed to update course');
+    });
+  }, [setCourses, user]);
 
   const deleteCourse = useCallback((id) => {
     setCourses(prev => prev.filter(c => c.id !== id));
     setTasks(prev => prev.filter(t => t.courseId !== id));
     setTimetableEntries(prev => prev.filter(e => e.courseId !== id));
-  }, [setCourses, setTasks, setTimetableEntries]);
+    if (user) sync.deleteCourse(id, user.id).then(({ error }) => {
+      if (error) onSyncError('Failed to delete course');
+    });
+  }, [setCourses, setTasks, setTimetableEntries, user]);
 
-  // Category CRUD (nested in course)
+  // ── Categories ────────────────────────────────────────────────────────────
   const addCategory = useCallback((courseId, data) => {
     const cat = { id: generateId(), name: '', weight: 0, dropLowest: false, grades: [], ...data };
     setCourses(prev => prev.map(c =>
       c.id === courseId ? { ...c, categories: [...(c.categories || []), cat] } : c
     ));
+    if (user) {
+      const position = (courses.find(c => c.id === courseId)?.categories || []).length;
+      sync.insertCategory(courseId, cat, position, user.id).then(({ error }) => {
+        if (error) {
+          setCourses(prev => prev.map(c =>
+            c.id === courseId ? { ...c, categories: c.categories.filter(ca => ca.id !== cat.id) } : c
+          ));
+          onSyncError('Failed to save category');
+        }
+      });
+    }
     return cat;
-  }, [setCourses]);
+  }, [setCourses, courses, user]);
 
   const updateCategory = useCallback((courseId, catId, data) => {
     setCourses(prev => prev.map(c =>
@@ -124,7 +186,10 @@ export function AppProvider({ children }) {
         ? { ...c, categories: c.categories.map(cat => cat.id === catId ? { ...cat, ...data } : cat) }
         : c
     ));
-  }, [setCourses]);
+    if (user) sync.updateCategory(catId, data, user.id).then(({ error }) => {
+      if (error) onSyncError('Failed to update category');
+    });
+  }, [setCourses, user]);
 
   const deleteCategory = useCallback((courseId, catId) => {
     setCourses(prev => prev.map(c =>
@@ -132,70 +197,91 @@ export function AppProvider({ children }) {
         ? { ...c, categories: c.categories.filter(cat => cat.id !== catId) }
         : c
     ));
-  }, [setCourses]);
+    if (user) sync.deleteCategory(catId, user.id).then(({ error }) => {
+      if (error) onSyncError('Failed to delete category');
+    });
+  }, [setCourses, user]);
 
-  // Grade CRUD (nested in category)
+  // ── Grades ────────────────────────────────────────────────────────────────
   const addGrade = useCallback((courseId, catId, data) => {
     const grade = { id: generateId(), label: '', score: 0, maxScore: 100, weight: 1, date: '', ...data };
     setCourses(prev => prev.map(c =>
       c.id === courseId
-        ? {
-            ...c,
-            categories: c.categories.map(cat =>
-              cat.id === catId ? { ...cat, grades: [...(cat.grades || []), grade] } : cat
-            )
-          }
+        ? { ...c, categories: c.categories.map(cat =>
+            cat.id === catId ? { ...cat, grades: [...(cat.grades || []), grade] } : cat
+          )}
         : c
     ));
+    if (user) sync.insertGrade(catId, grade, user.id).then(({ error }) => {
+      if (error) {
+        setCourses(prev => prev.map(c =>
+          c.id === courseId
+            ? { ...c, categories: c.categories.map(cat =>
+                cat.id === catId ? { ...cat, grades: cat.grades.filter(g => g.id !== grade.id) } : cat
+              )}
+            : c
+        ));
+        onSyncError('Failed to save grade');
+      }
+    });
     return grade;
-  }, [setCourses]);
+  }, [setCourses, user]);
 
   const updateGrade = useCallback((courseId, catId, gradeId, data) => {
     setCourses(prev => prev.map(c =>
       c.id === courseId
-        ? {
-            ...c,
-            categories: c.categories.map(cat =>
-              cat.id === catId
-                ? { ...cat, grades: cat.grades.map(g => g.id === gradeId ? { ...g, ...data } : g) }
-                : cat
-            )
-          }
+        ? { ...c, categories: c.categories.map(cat =>
+            cat.id === catId
+              ? { ...cat, grades: cat.grades.map(g => g.id === gradeId ? { ...g, ...data } : g) }
+              : cat
+          )}
         : c
     ));
-  }, [setCourses]);
+    if (user) sync.updateGrade(gradeId, data, user.id).then(({ error }) => {
+      if (error) onSyncError('Failed to update grade');
+    });
+  }, [setCourses, user]);
 
   const deleteGrade = useCallback((courseId, catId, gradeId) => {
     setCourses(prev => prev.map(c =>
       c.id === courseId
-        ? {
-            ...c,
-            categories: c.categories.map(cat =>
-              cat.id === catId
-                ? { ...cat, grades: cat.grades.filter(g => g.id !== gradeId) }
-                : cat
-            )
-          }
+        ? { ...c, categories: c.categories.map(cat =>
+            cat.id === catId
+              ? { ...cat, grades: cat.grades.filter(g => g.id !== gradeId) }
+              : cat
+          )}
         : c
     ));
-  }, [setCourses]);
+    if (user) sync.deleteGrade(gradeId, user.id).then(({ error }) => {
+      if (error) onSyncError('Failed to delete grade');
+    });
+  }, [setCourses, user]);
 
-  // Timetable CRUD
+  // ── Timetable ─────────────────────────────────────────────────────────────
   const addTimetableEntry = useCallback((data) => {
     const entry = { id: generateId(), semesterId: activeSemester?.id, courseId: null, ...data };
     setTimetableEntries(prev => [...prev, entry]);
+    if (user) sync.insertTimetableEntry(entry, user.id).then(({ error }) => {
+      if (error) { setTimetableEntries(prev => prev.filter(e => e.id !== entry.id)); onSyncError('Failed to save class'); }
+    });
     return entry;
-  }, [setTimetableEntries, activeSemester]);
+  }, [setTimetableEntries, activeSemester, user]);
 
   const updateTimetableEntry = useCallback((id, data) => {
     setTimetableEntries(prev => prev.map(e => e.id === id ? { ...e, ...data } : e));
-  }, [setTimetableEntries]);
+    if (user) sync.updateTimetableEntry(id, data, user.id).then(({ error }) => {
+      if (error) onSyncError('Failed to update class');
+    });
+  }, [setTimetableEntries, user]);
 
   const deleteTimetableEntry = useCallback((id) => {
     setTimetableEntries(prev => prev.filter(e => e.id !== id));
-  }, [setTimetableEntries]);
+    if (user) sync.deleteTimetableEntry(id, user.id).then(({ error }) => {
+      if (error) onSyncError('Failed to delete class');
+    });
+  }, [setTimetableEntries, user]);
 
-  // Task CRUD
+  // ── Tasks ─────────────────────────────────────────────────────────────────
   const addTask = useCallback((data) => {
     const task = {
       id: generateId(),
@@ -213,26 +299,39 @@ export function AppProvider({ children }) {
       ...data
     };
     setTasks(prev => [...prev, task]);
+    if (user) sync.insertTask(task, user.id).then(({ error }) => {
+      if (error) { setTasks(prev => prev.filter(t => t.id !== task.id)); onSyncError('Failed to save task'); }
+    });
     return task;
-  }, [setTasks, activeSemester]);
+  }, [setTasks, activeSemester, user]);
 
   const updateTask = useCallback((id, data) => {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, ...data } : t));
-  }, [setTasks]);
+    if (user) sync.updateTask(id, data, user.id).then(({ error }) => {
+      if (error) onSyncError('Failed to update task');
+    });
+  }, [setTasks, user]);
 
   const deleteTask = useCallback((id) => {
     setTasks(prev => prev.filter(t => t.id !== id));
-  }, [setTasks]);
+    if (user) sync.deleteTask(id, user.id).then(({ error }) => {
+      if (error) onSyncError('Failed to delete task');
+    });
+  }, [setTasks, user]);
 
   const toggleTaskComplete = useCallback((id) => {
-    setTasks(prev => prev.map(t =>
-      t.id === id
-        ? { ...t, completed: !t.completed, completedAt: !t.completed ? new Date().toISOString() : null }
-        : t
-    ));
-  }, [setTasks]);
+    setTasks(prev => prev.map(t => {
+      if (t.id !== id) return t;
+      const completed = !t.completed;
+      const completedAt = completed ? new Date().toISOString() : null;
+      if (user) sync.updateTask(id, { completed, completedAt }, user.id).then(({ error }) => {
+        if (error) onSyncError('Failed to update task');
+      });
+      return { ...t, completed, completedAt };
+    }));
+  }, [setTasks, user]);
 
-  // Bulk import from outline parser
+  // ── Outline import ────────────────────────────────────────────────────────
   const importFromOutline = useCallback((parsed) => {
     const courseData = {
       code: parsed.courseCode || '',
@@ -246,7 +345,6 @@ export function AppProvider({ children }) {
     };
     const course = addCourse(courseData);
 
-    // Add timetable entries
     for (const sched of parsed.schedule || []) {
       addTimetableEntry({
         label: `${courseData.code} ${sched.type || 'Lecture'}`,
@@ -261,37 +359,35 @@ export function AppProvider({ children }) {
       });
     }
 
-    // Add tasks from deadlines
     for (const dl of parsed.deadlines || []) {
-      addTask({
-        title: dl.title,
-        type: dl.type || 'assignment',
-        dueDate: dl.date,
-        courseId: course.id
-      });
+      addTask({ title: dl.title, type: dl.type || 'assignment', dueDate: dl.date, courseId: course.id });
     }
 
     return course;
   }, [addCourse, addTimetableEntry, addTask]);
 
-  // Study hours
+  // ── Study hours ───────────────────────────────────────────────────────────
   const addStudyTime = useCallback((courseId, seconds) => {
-    setStudyHours(prev => ({ ...prev, [courseId]: (prev[courseId] || 0) + seconds }));
-  }, [setStudyHours]);
+    setStudyHours(prev => {
+      const next = { ...prev, [courseId]: (prev[courseId] || 0) + seconds };
+      if (user) sync.upsertStudyHours(courseId, next[courseId], user.id).then(({ error }) => {
+        if (error) onSyncError('Failed to save study time');
+      });
+      return next;
+    });
+  }, [setStudyHours, user]);
 
-  const getStudyHours = useCallback((courseId) => {
-    return studyHours[courseId] || 0;
-  }, [studyHours]);
+  const getStudyHours = useCallback((courseId) => studyHours[courseId] || 0, [studyHours]);
 
   // Apply saved theme on load
-  const currentTheme = settings.theme || 'ultragrade-dark';
   if (typeof document !== 'undefined') {
-    document.documentElement.setAttribute('data-theme', currentTheme);
+    document.documentElement.setAttribute('data-theme', settings.theme || 'ultragrade-dark');
   }
 
   const value = {
     semesters, courses, timetableEntries, tasks, settings, studyHours,
     activeSemester, activeCourses, activeTasks, activeTimetable,
+    isLoaded, syncError,
     updateSettings, setStudentType, updateSchool,
     addSemester, updateSemester, deleteSemester, setActiveSemester,
     addCourse, updateCourse, deleteCourse,
