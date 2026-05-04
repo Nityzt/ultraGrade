@@ -4,54 +4,51 @@ const SECTIONS = {
   'study-permit': {
     url: 'https://www.canada.ca/en/immigration-refugees-citizenship/services/study-canada/study-permit.html',
     title: 'Study Permit Requirements',
-    fallback: `Study Permit Requirements
-
-To study in Canada, most international students need a study permit.
+    preferLive: false,
+    fallback: `To study in Canada, most international students need a study permit.
 
 Key Requirements:
-• You must be enrolled at a Designated Learning Institution (DLI)
-• Your study permit is NOT a visa — you may need a separate travel visa or eTA
+• Must be enrolled at a Designated Learning Institution (DLI)
+• A study permit is NOT a visa — you may need a separate travel visa or eTA
 • Maintain full-time enrollment (some exceptions apply)
 • Report any address changes to IRCC
 
-Processing:
-• Apply at IRCC.gc.ca before your program begins
-• Processing times vary by country
+Fees & Processing:
 • Study permit fee: CAD $150
-
-For the latest information, visit canada.ca/study-canada`
+• Processing times vary by country — apply well before your program starts
+• Apply at ircc.canada.ca before travelling to Canada`
   },
   'work-rights': {
     url: 'https://www.canada.ca/en/immigration-refugees-citizenship/services/study-canada/work.html',
     title: 'Work While Studying',
-    fallback: `Work Rights for International Students
-
-On-Campus Work:
+    preferLive: false,
+    fallback: `On-Campus Work:
 • Unlimited hours during academic sessions
 • No separate work permit needed
-• Must have a valid study permit
+• Must have a valid study permit and be actively enrolled
 
 Off-Campus Work:
 • Up to 24 hours/week during academic sessions
 • Full-time during scheduled breaks (winter, summer, reading week)
-• Need a SIN (Social Insurance Number) to work legally
+• Requires a Social Insurance Number (SIN)
 
-Co-op/Internship:
-• Requires a Co-op Work Permit in addition to your study permit
-• Must be an integral part of your program
+Co-op & Internships (as of April 1, 2026):
+• No co-op work permit required for student work placements
+• Must be an integral, credited part of your program
 
-For the latest rules, visit canada.ca/study-canada/work`
+Spouse/Partner Work:
+• Spouses of eligible full-time students may qualify for an open work permit`
   },
   'pgwp': {
     url: 'https://www.canada.ca/en/immigration-refugees-citizenship/services/study-canada/work/after-graduation/about.html',
     title: 'Post-Graduation Work Permit (PGWP)',
-    fallback: `Post-Graduation Work Permit (PGWP)
-
-The PGWP allows you to work in Canada after graduating.
+    preferLive: true,
+    fallback: `The PGWP lets you work anywhere in Canada after graduating.
 
 Eligibility:
-• Program must be at least 8 months long at a Designated Learning Institution (DLI)
-• Apply within 180 days of receiving your final grades
+• Program must be at least 8 months long at an eligible DLI
+• Apply within 180 days of receiving your final marks
+• As of November 1, 2024: proof of language results required at application
 • Programs studied primarily online from outside Canada may not qualify
 
 Duration:
@@ -60,45 +57,54 @@ Duration:
 
 Important:
 • You can only ever receive ONE PGWP in your lifetime
-• Your study permit must have been valid when you finished your studies
-
-For the latest information, visit canada.ca/pgwp`
+• Your study permit must have been valid when you finished your studies`
   },
   'ohip': {
     url: 'https://www.ontario.ca/page/apply-ohip-and-get-health-card',
     title: 'OHIP Health Coverage',
-    fallback: `OHIP Health Coverage
+    preferLive: true,
+    fallback: `OHIP (Ontario Health Insurance Plan) covers most medically necessary services.
 
-OHIP (Ontario Health Insurance Plan) covers most medically necessary services.
+Eligibility:
+• International students on a valid study permit are eligible for OHIP
+• No waiting period — coverage is immediate if you qualify
 
-Eligibility for International Students:
-• International students on a valid study permit ARE eligible for OHIP
-• There is a 3-month waiting period before coverage begins
-
-What to Bring When Applying at ServiceOntario:
+Applying at ServiceOntario — bring:
 • Valid passport
 • Study permit
-• Proof of Ontario address (lease, utility bill)
+• Proof of Ontario address (lease, utility bill, bank statement)
 
-During the Waiting Period:
-• Purchase private health insurance through your school's student union
-• Most universities offer this automatically with enrollment
-
-For the latest information, visit ontario.ca/ohip`
+While waiting for your health card:
+• Keep your confirmation of registration as proof of coverage
+• Most universities auto-enroll you in private insurance at the start of term — check your student fees`
   }
 };
 
 const cache = new Map();
 const TTL_MS = 24 * 60 * 60 * 1000;
 
+const NOISE_LINES = new Set([
+  'image', 'on this page', 'skip this page navigation',
+  'sign in to your account', 'check our current processing times',
+  'check your application status', 'most requested', 'page details',
+  'feature', 'skip to main content', 'language selection', 'breadcrumb',
+  'date modified', 'report a problem on this page',
+  'you will not receive a reply', 'thank you for your help',
+  'for enquiries, contact us', 'government of canada',
+  'explore immigration programs', 'answer a few questions to see different ways you might be able to come to canada'
+]);
+
+function isNoiseLine(line) {
+  const text = line.startsWith('• ') ? line.slice(2) : line;
+  return NOISE_LINES.has(text.toLowerCase().trim());
+}
+
 function extractMainContent(html) {
   let text = html;
 
-  // Extract <main> content only
   const mainMatch = text.match(/<main[^>]*>([\s\S]*?)<\/main>/i);
   if (mainMatch) text = mainMatch[1];
 
-  // Strip unwanted blocks entirely
   text = text.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
   text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
   text = text.replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '');
@@ -106,7 +112,6 @@ function extractMainContent(html) {
   text = text.replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '');
   text = text.replace(/<!--[\s\S]*?-->/g, '');
 
-  // Convert structural elements to readable text
   text = text.replace(/<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>/gi, (_, inner) => {
     const content = inner.replace(/<[^>]+>/g, '').trim();
     return content ? `\n\n${content}\n` : '';
@@ -120,11 +125,8 @@ function extractMainContent(html) {
     return content ? `\n${content}\n` : '';
   });
   text = text.replace(/<br\s*\/?>/gi, '\n');
-
-  // Strip all remaining tags
   text = text.replace(/<[^>]+>/g, '');
 
-  // Decode entities
   text = text
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
@@ -132,19 +134,27 @@ function extractMainContent(html) {
     .replace(/&gt;/g, '>')
     .replace(/&#39;/g, "'")
     .replace(/&quot;/g, '"')
+    .replace(/&rsquo;/g, '’')
+    .replace(/&lsquo;/g, '‘')
+    .replace(/&ldquo;/g, '“')
+    .replace(/&rdquo;/g, '”')
     .replace(/&mdash;/g, '—')
-    .replace(/&ndash;/g, '–');
+    .replace(/&ndash;/g, '–')
+    .replace(/&#8209;/g, '-')
+    .replace(/&#[0-9]+;/g, (m) => {
+      const code = parseInt(m.slice(2, -1));
+      return code < 32 || code === 160 ? ' ' : String.fromCharCode(code);
+    });
 
-  // Normalize line endings, trim each line, collapse blanks
   text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   text = text.split('\n').map(l => l.trim()).join('\n');
-  text = text.replace(/\n{3,}/g, '\n\n');
-  text = text.trim();
+  text = text.split('\n').filter(line => !isNoiseLine(line)).join('\n');
+  text = text.replace(/\n{3,}/g, '\n\n').trim();
 
   return text.slice(0, 5000);
 }
 
-const MIN_USEFUL_LENGTH = 200;
+const MIN_USEFUL_LENGTH = 400;
 
 export async function fetchSection(section) {
   const config = SECTIONS[section];
@@ -165,18 +175,15 @@ export async function fetchSection(section) {
       }
     });
 
-    const content = extractMainContent(response.data);
-
-    // If the live content is too sparse (JS-rendered site), use the fallback text
-    const useContent = content.length >= MIN_USEFUL_LENGTH ? content : config.fallback;
-    const fromFallback = content.length < MIN_USEFUL_LENGTH;
+    const liveContent = extractMainContent(response.data);
+    const useLive = config.preferLive && liveContent.length >= MIN_USEFUL_LENGTH;
 
     const result = {
       title: config.title,
-      content: useContent,
+      content: useLive ? liveContent : config.fallback,
       sourceUrl: config.url,
       fetchedAt: new Date().toISOString(),
-      fromFallback
+      fromFallback: !useLive
     };
 
     cache.set(section, { ...result, fetchedAt: Date.now() });
@@ -189,8 +196,7 @@ export async function fetchSection(section) {
       sourceUrl: config.url,
       fetchedAt: new Date().toISOString(),
       fromFallback: true,
-      fromCache: false,
-      error: err.message
+      fromCache: false
     };
   }
 }
