@@ -27,7 +27,8 @@ function useImmigrationData() {
   const fetchSection = useCallback(async (section, force = false) => {
     setLoading(l => ({ ...l, [section]: true }));
     try {
-      const url = force ? `/api/immigration/${section}?force=true` : `/api/immigration/${section}`;
+      const base = import.meta.env.VITE_API_URL ?? '';
+      const url = force ? `${base}/api/immigration/${section}?force=true` : `${base}/api/immigration/${section}`;
       const res = await axios.get(url);
       setData(d => ({ ...d, [section]: res.data }));
     } catch (err) {

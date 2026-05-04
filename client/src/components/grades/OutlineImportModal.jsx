@@ -20,7 +20,7 @@ export default function OutlineImportModal({ isOpen, onClose }) {
     try {
       const formData = new FormData();
       formData.append('outline', file);
-      const res = await axios.post('/api/parse-outline', formData, {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL ?? ''}/api/parse-outline`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
