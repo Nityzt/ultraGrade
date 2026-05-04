@@ -31,20 +31,48 @@ Track grades & GPA, manage your timetable, plan assignments, and access live Can
 
 ## Quick Start
 
+### Prerequisites
+- A [Supabase](https://supabase.com) project (free tier works)
+- A [Google AI Studio](https://aistudio.google.com) API key (for outline parsing)
+
+### Setup
+
 ```bash
 # Clone and enter the directory
 git clone <repo-url>
 cd ultraGrade
 
-# Set up environment variables
-cp .env.example .env
-# Edit .env: set GEMINI_API_KEY=your_key_here
-
 # Install dependencies (all three locations)
 npm install
 npm install --prefix server
 npm install --prefix client
+```
 
+**Supabase setup (required):**
+1. Create a project at supabase.com
+2. Run `supabase/migrations/001_initial_schema.sql` in Supabase → SQL Editor
+3. Enable Email auth: Authentication → Providers → Email → Enable
+4. (Optional) Enable Google OAuth: Authentication → Providers → Google → paste credentials
+5. Set redirect URLs: Authentication → URL Configuration
+   - Site URL: `http://localhost:5173`
+   - Redirect URLs: `http://localhost:5173/**`
+
+**Environment variables — two separate files:**
+
+```bash
+# server/.env
+GEMINI_API_KEY=your_key_here
+PORT=3001
+CLIENT_URL=http://localhost:5173
+SUPABASE_URL=https://your-project.supabase.co
+
+# client/.env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your_anon_key_here
+VITE_API_URL=   # leave empty for local dev
+```
+
+```bash
 # Run dev servers
 npm run dev
 # Frontend: http://localhost:5173
@@ -56,11 +84,24 @@ npm run dev
 
 ## Environment Variables
 
+Two separate `.env` files are required (see Quick Start for details).
+
+**`server/.env`**
+
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `GEMINI_API_KEY` | Yes | Google AI Studio key for outline parsing |
-| `PORT` | No | Backend port (default: `3001`) |
+| `SUPABASE_URL` | Yes | Supabase project URL (for JWT verification) |
 | `CLIENT_URL` | No | Frontend origin for CORS (default: `http://localhost:5173`) |
+| `PORT` | No | Backend port (default: `3001`) |
+
+**`client/.env`**
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `VITE_SUPABASE_URL` | Yes | Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Yes | Supabase anon/public key (safe to expose — RLS enforces isolation) |
+| `VITE_API_URL` | No | Backend base URL — empty in dev (Vite proxy handles it), Render URL in production |
 
 Get a free Gemini key at [aistudio.google.com](https://aistudio.google.com).
 
@@ -70,24 +111,43 @@ Get a free Gemini key at [aistudio.google.com](https://aistudio.google.com).
 
 ```
 ultraGrade/
+├── render.yaml                    # Render deployment config (backend)
+├── supabase/migrations/           # 001_initial_schema.sql — run once in Supabase SQL Editor
 ├── server/
 │   ├── index.js                   # Express app, CORS, routes, error handler
+│   ├── middleware/
+│   │   └── requireAuth.js         # JWT verification via Supabase JWKS (jose)
 │   ├── routes/
-│   │   ├── parseOutline.js        # POST /api/parse-outline (multer + Gemini)
-│   │   └── immigration.js         # GET /api/immigration/:section (proxy + cache)
+│   │   ├── parseOutline.js        # POST /api/parse-outline (multer + Gemini) [JWT protected]
+│   │   └── immigration.js         # GET /api/immigration/:section (proxy + cache) [public]
 │   └── utils/
 │       ├── geminiParser.js        # Gemini API call, JSON extraction, prompt
 │       └── immigrationFetcher.js  # Axios fetch + HTML parse + 24hr cache
 ├── client/
 │   ├── src/
-│   │   ├── pages/                 # Dashboard, Grades, Timetable, Planner,
-│   │   │                          #   Immigration, StudentResources, Settings, Onboarding
+│   │   ├── lib/supabase.js        # Supabase client singleton
+│   │   ├── context/
+│   │   │   ├── AuthContext.jsx    # Session state, signIn*, signOut
+│   │   │   └── AppContext.jsx     # All app state + CRUD + Supabase sync
+│   │   ├── pages/
+│   │   │   ├── Login.jsx          # Google OAuth + email/password + forgot password
+│   │   │   ├── ResetPassword.jsx  # Password reset (handles PKCE + implicit flow)
+│   │   │   ├── Onboarding.jsx     # First-login student type selector
+│   │   │   ├── Dashboard.jsx      # GPA summary, schedule, deadlines, stats
+│   │   │   ├── Grades.jsx         # Grade calculator, outline import
+│   │   │   ├── Timetable.jsx      # Weekly grid + day view
+│   │   │   ├── Planner.jsx        # Tasks grouped by urgency, deadline calendar
+│   │   │   ├── Immigration.jsx    # Live Canada.ca immigration info (international)
+│   │   │   ├── StudentResources.jsx # OSAP/OHIP resources (domestic)
+│   │   │   └── Settings.jsx       # Profile, GPA scale, theme, danger zone
 │   │   ├── components/            # grades/, timetable/, planner/, dashboard/,
-│   │   │                          #   immigration/, layout/, onboarding/, ui/
-│   │   ├── context/               # AppContext.jsx — all app state + CRUD
-│   │   ├── hooks/                 # useLocalStorage, useGradeCalc
-│   │   ├── utils/                 # gradeCalculations, dateHelpers, colorHelpers
+│   │   │                          #   immigration/, layout/, migration/, ui/
+│   │   ├── hooks/                 # useLocalStorage, useGradeCalc,
+│   │   │                          #   useSupabaseLoader, useSupabaseSync
+│   │   ├── utils/                 # gradeCalculations (+ tests), dateHelpers (+ tests),
+│   │   │                          #   colorHelpers, migrationUtils (+ tests)
 │   │   └── data/                  # gpaScales.js, universities.js
+│   ├── vercel.json                # Vercel SPA rewrites + cache headers
 │   └── vite.config.js             # PWA plugin, /api proxy → localhost:3001
 ├── package.json                   # Root: runs both servers via concurrently
 └── .env.example                   # Environment variable template
@@ -106,12 +166,15 @@ ultraGrade/
 | Forms | react-hook-form |
 | Icons | lucide-react |
 | HTTP client | axios |
+| Auth + database | Supabase (Google OAuth + email/password) |
 | PDF export | jsPDF + jspdf-autotable |
 | Backend | Node.js + Express |
 | AI parsing | Google Gemini (`gemini-2.0-flash-lite`) |
 | File uploads | multer |
 | PDF parsing | pdf-parse |
+| JWT auth | jose (JWKS verification) |
 | PWA | vite-plugin-pwa + Workbox |
+| Tests | Vitest + jsdom (81 unit tests) |
 
 ---
 
@@ -168,6 +231,26 @@ Each section shows the source URL, last-fetched timestamp, and a Refresh button.
 2. Tap **⋮** → **Add to Home Screen** / **Install app** → **Install**
 
 The app works offline once installed — grades, timetable, and tasks are always accessible.
+
+---
+
+## Deployment
+
+### Backend — [Render](https://render.com) (free tier)
+1. New Web Service → connect GitHub repo
+2. Root directory: `server`, start command: `npm start`
+3. Add env vars: `GEMINI_API_KEY`, `SUPABASE_URL`, `CLIENT_URL` (Vercel URL), `PORT`
+4. Copy the Render URL (e.g. `https://ultragrade-server.onrender.com`)
+
+### Frontend — [Vercel](https://vercel.com)
+1. New project → import GitHub repo → Root directory: `client`
+2. Add env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_URL` (Render URL)
+3. Deploy → copy the Vercel URL
+
+### After both are deployed
+- Update Render `CLIENT_URL` → Vercel URL
+- Supabase → Authentication → URL Configuration: add Vercel URL to Site URL and Redirect URLs
+- Google Cloud Console → OAuth client: add Vercel URL to Authorized JavaScript Origins
 
 ---
 
