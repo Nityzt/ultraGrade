@@ -2,12 +2,12 @@ import { colorWithOpacity } from '../../utils/colorHelpers.js';
 import { formatTime } from '../../utils/dateHelpers.js';
 
 export default function ClassBlock({ entry, style, onClick }) {
-  const bg = colorWithOpacity(entry.color || '#818cf8', 0.2);
-  const border = entry.color || '#818cf8';
+  const bg = colorWithOpacity(entry.color || '#4ade80', 0.2);
+  const border = entry.color || '#4ade80';
 
   return (
     <div
-      className="absolute rounded-md px-2 py-1 cursor-pointer hover:opacity-90 transition-opacity overflow-hidden group"
+      className="absolute rounded-xl px-2.5 py-1.5 cursor-pointer hover:opacity-90 transition-opacity overflow-hidden group"
       style={{ ...style, backgroundColor: bg, borderLeft: `3px solid ${border}` }}
       onClick={onClick}
     >

@@ -18,9 +18,9 @@ function GoogleIcon() {
 export default function Login() {
   const { signInWithGoogle, signInWithEmail, signUpWithEmail, resetPassword } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState('signin'); // 'signin' | 'signup' | 'reset'
+  const [tab, setTab] = useState('signin');
   const [showPassword, setShowPassword] = useState(false);
-  const [status, setStatus] = useState(null); // { type: 'success'|'error', msg }
+  const [status, setStatus] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm();
@@ -70,58 +70,68 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-base-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
+    <div className="min-h-screen bg-base-100 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background radial glow */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse 60% 50% at 50% 0%, oklch(from var(--p) l c h / 0.12) 0%, transparent 70%)' }}
+      />
+
+      <div className="w-full max-w-sm relative z-10">
         {/* Brand */}
         <div className="flex flex-col items-center mb-8 gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg">
-            <GraduationCap size={24} className="text-white" />
+          <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center shadow-xl shadow-primary/20">
+            <GraduationCap size={28} className="text-base-100" />
           </div>
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-base-content tracking-tight">ultraGrade</h1>
-            <p className="text-sm text-base-content/50 mt-1">Your academic toolkit</p>
+            <h1 className="text-2xl font-bold tracking-tight">
+              <span className="text-primary">ultra</span>
+              <span className="text-base-content">Grade</span>
+            </h1>
+            <p className="text-sm text-base-content/40 mt-1">Your academic toolkit</p>
           </div>
         </div>
 
-        <div className="card bg-base-200 border border-base-300 shadow-xl">
-          <div className="card-body gap-5">
-            {/* Tabs */}
-            <div className="tabs tabs-boxed bg-base-300/50">
-              <button
-                className={`tab flex-1 text-xs font-medium ${tab === 'signin' ? 'tab-active' : ''}`}
-                onClick={() => { setTab('signin'); setStatus(null); reset(); }}
-              >
-                Sign In
-              </button>
-              <button
-                className={`tab flex-1 text-xs font-medium ${tab === 'signup' ? 'tab-active' : ''}`}
-                onClick={() => { setTab('signup'); setStatus(null); reset(); }}
-              >
-                Sign Up
-              </button>
+        <div className="card bg-base-200 border border-base-300 shadow-2xl">
+          <div className="card-body gap-5 p-6">
+            {/* Pill tab switcher */}
+            <div className="flex gap-1 p-1 bg-base-300/40 rounded-2xl">
+              {['signin', 'signup'].map(t => (
+                <button
+                  key={t}
+                  className={`flex-1 py-1.5 text-xs font-semibold rounded-xl transition-all ${
+                    tab === t
+                      ? 'bg-primary text-base-100 shadow-sm shadow-primary/20'
+                      : 'text-base-content/50 hover:text-base-content'
+                  }`}
+                  onClick={() => { setTab(t); setStatus(null); reset(); }}
+                >
+                  {t === 'signin' ? 'Sign In' : 'Sign Up'}
+                </button>
+              ))}
             </div>
 
             {/* Status banner */}
             {status && (
-              <div className={`alert ${status.type === 'success' ? 'alert-success' : 'alert-error'} py-2.5 text-sm`}>
+              <div className={`alert ${status.type === 'success' ? 'alert-success' : 'alert-error'} py-2.5 text-sm rounded-2xl`}>
                 {status.type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
                 <span>{status.msg}</span>
               </div>
             )}
 
             {/* Google OAuth */}
-            <button onClick={handleGoogleSignIn} className="btn btn-outline w-full gap-2 font-medium">
+            <button onClick={handleGoogleSignIn} className="btn btn-outline w-full gap-2 font-medium rounded-2xl border-base-300 hover:border-primary hover:bg-primary/5">
               <GoogleIcon />
               Continue with Google
             </button>
 
-            <div className="divider text-xs text-base-content/40 my-0">or continue with email</div>
+            <div className="divider text-xs text-base-content/30 my-0">or with email</div>
 
             {/* Email/password form */}
             {tab !== 'reset' ? (
               <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
                 <div>
-                  <label className="input input-bordered flex items-center gap-2 text-sm">
+                  <label className="input input-bordered flex items-center gap-2 text-sm rounded-2xl">
                     <Mail size={14} className="text-base-content/40" />
                     <input
                       type="email"
@@ -134,7 +144,7 @@ export default function Login() {
                 </div>
 
                 <div>
-                  <label className="input input-bordered flex items-center gap-2 text-sm">
+                  <label className="input input-bordered flex items-center gap-2 text-sm rounded-2xl">
                     <Lock size={14} className="text-base-content/40" />
                     <input
                       type={showPassword ? 'text' : 'password'}
@@ -149,22 +159,26 @@ export default function Login() {
                   {errors.password && <p className="text-error text-xs mt-1">{errors.password.message}</p>}
                 </div>
 
-                <button type="submit" className="btn btn-primary w-full mt-1" disabled={submitting}>
+                <button type="submit" className="btn btn-primary w-full mt-1 rounded-2xl font-semibold" disabled={submitting}>
                   {submitting && <span className="loading loading-spinner loading-xs" />}
                   {tab === 'signin' ? 'Sign In' : 'Create Account'}
                 </button>
 
                 {tab === 'signin' && (
-                  <button type="button" onClick={() => { setTab('reset'); setStatus(null); reset(); }} className="text-xs text-base-content/50 hover:text-base-content text-center mt-1">
+                  <button
+                    type="button"
+                    onClick={() => { setTab('reset'); setStatus(null); reset(); }}
+                    className="text-xs text-base-content/40 hover:text-primary text-center mt-1 transition-colors"
+                  >
                     Forgot password?
                   </button>
                 )}
               </form>
             ) : (
               <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
-                <p className="text-sm text-base-content/60">Enter your email and we'll send a reset link.</p>
+                <p className="text-sm text-base-content/50">Enter your email and we'll send a reset link.</p>
                 <div>
-                  <label className="input input-bordered flex items-center gap-2 text-sm">
+                  <label className="input input-bordered flex items-center gap-2 text-sm rounded-2xl">
                     <Mail size={14} className="text-base-content/40" />
                     <input
                       type="email"
@@ -175,11 +189,15 @@ export default function Login() {
                   </label>
                   {errors.email && <p className="text-error text-xs mt-1">{errors.email.message}</p>}
                 </div>
-                <button type="submit" className="btn btn-primary w-full" disabled={submitting}>
+                <button type="submit" className="btn btn-primary w-full rounded-2xl font-semibold" disabled={submitting}>
                   {submitting && <span className="loading loading-spinner loading-xs" />}
                   Send Reset Link
                 </button>
-                <button type="button" onClick={() => { setTab('signin'); setStatus(null); reset(); }} className="text-xs text-base-content/50 hover:text-base-content text-center">
+                <button
+                  type="button"
+                  onClick={() => { setTab('signin'); setStatus(null); reset(); }}
+                  className="text-xs text-base-content/40 hover:text-primary text-center transition-colors"
+                >
                   Back to sign in
                 </button>
               </form>

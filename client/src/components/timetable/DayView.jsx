@@ -33,8 +33,8 @@ export default function DayView({ entries, onEdit }) {
           <div
             className="flex-1 rounded-xl p-3 border"
             style={{
-              backgroundColor: colorWithOpacity(entry.color || '#818cf8', 0.1),
-              borderColor: colorWithOpacity(entry.color || '#818cf8', 0.3)
+              backgroundColor: colorWithOpacity(entry.color || '#4ade80', 0.1),
+              borderColor: colorWithOpacity(entry.color || '#4ade80', 0.3)
             }}
           >
             <div className="flex items-start justify-between gap-2">

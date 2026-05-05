@@ -33,7 +33,7 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' })
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 8 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className={`w-full ${sizeClasses[size]} bg-base-200 rounded-2xl shadow-2xl border border-base-300 max-h-[90vh] flex flex-col`}
+            className={`w-full ${sizeClasses[size]} bg-base-200 rounded-3xl shadow-2xl border border-base-300 max-h-[90vh] flex flex-col`}
           >
             <div className="flex items-center justify-between px-6 py-4 border-b border-base-300 shrink-0">
               <h3 className="font-semibold text-base-content">{title}</h3>

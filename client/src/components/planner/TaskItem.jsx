@@ -22,7 +22,7 @@ export default function TaskItem({ task, onEdit, onDelete }) {
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-      className={`flex items-start gap-3 p-3 rounded-xl bg-base-200 border border-base-300 border-l-4 group ${urgencyBg} ${task.completed ? 'opacity-50' : ''}`}
+      className={`flex items-start gap-3 p-3.5 rounded-2xl bg-base-200 border border-base-300 border-l-4 group ${urgencyBg} ${task.completed ? 'opacity-50' : ''}`}
     >
       {/* Checkbox */}
       <motion.button
