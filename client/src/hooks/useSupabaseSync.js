@@ -37,7 +37,7 @@ export async function insertCourse(course, userId) {
     professor: course.professor || '',
     credit_hours: course.creditHours ?? 3,
     target_grade: course.targetGrade ?? 70,
-    color: course.color || '#818cf8',
+    color: course.color || '#4ade80',
     notes: course.notes || '',
     outline_uploaded: course.outlineUploaded || false,
     final_grade_override: course.finalGradeOverride ?? null,
@@ -97,11 +97,11 @@ export function updateCourse(id, data, userId) {
 }
 
 export async function deleteCourse(id, userId) {
-  // Delete associated tasks and timetable_entries first (FK is SET NULL — we want full removal)
   await Promise.all([
     supabase.from('tasks').delete().eq('course_id', id).eq('user_id', userId),
     supabase.from('timetable_entries').delete().eq('course_id', id).eq('user_id', userId),
     supabase.from('study_hours').delete().eq('course_id', id).eq('user_id', userId),
+    supabase.from('categories').delete().eq('course_id', id).eq('user_id', userId),
   ]);
   return supabase.from('courses').delete().eq('id', id).eq('user_id', userId);
 }
@@ -174,7 +174,7 @@ export function insertTimetableEntry(entry, userId) {
     day_of_week: entry.dayOfWeek ?? 1,
     start_time: entry.startTime || '09:00',
     end_time: entry.endTime || '10:00',
-    color: entry.color || '#818cf8',
+    color: entry.color || '#4ade80',
     type: entry.type || 'lecture',
   });
 }

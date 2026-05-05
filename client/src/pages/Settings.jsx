@@ -39,18 +39,27 @@ export default function Settings() {
     setValue('gpaScale', suggested);
   };
 
+  const [clearError, setClearError] = useState(null);
+
   const clearAllData = async () => {
-    localStorage.clear();
-    if (user) {
-      await Promise.all([
-        supabase.from('semesters').delete().eq('user_id', user.id),
-        supabase.from('timetable_entries').delete().eq('user_id', user.id),
-        supabase.from('tasks').delete().eq('user_id', user.id),
-        supabase.from('study_hours').delete().eq('user_id', user.id),
-        supabase.from('profiles').upsert({ id: user.id }, { onConflict: 'id' }),
-      ]);
+    setClearError(null);
+    try {
+      localStorage.clear();
+      if (user) {
+        const results = await Promise.all([
+          supabase.from('semesters').delete().eq('user_id', user.id),
+          supabase.from('timetable_entries').delete().eq('user_id', user.id),
+          supabase.from('tasks').delete().eq('user_id', user.id),
+          supabase.from('study_hours').delete().eq('user_id', user.id),
+          supabase.from('profiles').upsert({ id: user.id }, { onConflict: 'id' }),
+        ]);
+        const failed = results.find(r => r.error);
+        if (failed) throw new Error(failed.error.message || 'Failed to clear data from database.');
+      }
+      window.location.reload();
+    } catch (err) {
+      setClearError(err.message || 'Something went wrong. Please try again.');
     }
-    window.location.reload();
   };
 
   return (
@@ -173,13 +182,19 @@ export default function Settings() {
         </div>
       </div>
 
+      {clearError && (
+        <div className="alert alert-error text-sm rounded-2xl">
+          <span>{clearError}</span>
+        </div>
+      )}
+
       <ConfirmDialog
-        open={clearConfirm}
+        isOpen={clearConfirm}
         onClose={() => setClearConfirm(false)}
         onConfirm={clearAllData}
         title="Clear All Data?"
         message="This will permanently delete all your semesters, courses, grades, timetable entries, and tasks. This action cannot be undone."
-        variant="danger"
+        danger={true}
         confirmLabel="Yes, Delete Everything"
       />
     </div>
