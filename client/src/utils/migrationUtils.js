@@ -58,7 +58,7 @@ export async function migrateLocalStorageToSupabase(userId) {
         id: c.id, user_id: userId, semester_id: c.semesterId,
         code: c.code || '', name: c.name || '', professor: c.professor || '',
         credit_hours: c.creditHours ?? 3, target_grade: c.targetGrade ?? 70,
-        color: c.color || '#818cf8', notes: c.notes || '',
+        color: c.color || '#4ade80', notes: c.notes || '',
         outline_uploaded: c.outlineUploaded || false,
         final_grade_override: c.finalGradeOverride ?? null,
       }));
@@ -103,7 +103,7 @@ export async function migrateLocalStorageToSupabase(userId) {
         id: e.id, user_id: userId, semester_id: e.semesterId, course_id: e.courseId || null,
         label: e.label || '', location: e.location || '', professor: e.professor || '',
         day_of_week: e.dayOfWeek ?? 1, start_time: e.startTime || '09:00',
-        end_time: e.endTime || '10:00', color: e.color || '#818cf8', type: e.type || 'lecture',
+        end_time: e.endTime || '10:00', color: e.color || '#4ade80', type: e.type || 'lecture',
       }));
       const { error } = await supabase.from('timetable_entries').upsert(rows, { ignoreDuplicates: true });
       if (error) return { count, error };

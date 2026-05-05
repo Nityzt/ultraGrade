@@ -1,8 +1,8 @@
 // Color utilities for courses and grades
 
 export const COURSE_COLORS = [
-  '#818cf8', '#34d399', '#f472b6', '#fb923c', '#60a5fa',
-  '#a78bfa', '#facc15', '#4ade80', '#f87171', '#38bdf8',
+  '#4ade80', '#34d399', '#f472b6', '#fb923c', '#60a5fa',
+  '#a78bfa', '#facc15', '#86efac', '#f87171', '#38bdf8',
   '#c084fc', '#2dd4bf'
 ];
 
@@ -26,7 +26,7 @@ export function colorWithOpacity(hex, opacity) {
 }
 
 export const TASK_TYPE_COLORS = {
-  assignment: '#818cf8',
+  assignment: '#4ade80',
   exam: '#f87171',
   quiz: '#fbbf24',
   project: '#34d399',
