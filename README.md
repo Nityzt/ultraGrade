@@ -3,7 +3,7 @@
 **One-stop academic toolkit for students at Ontario universities.**
 Track grades & GPA, manage your timetable, plan assignments, and access live Canadian immigration info — all in one place.
 
-![PWA](https://img.shields.io/badge/PWA-installable-818cf8?style=flat-square)
+![PWA](https://img.shields.io/badge/PWA-installable-4ade80?style=flat-square)
 ![React](https://img.shields.io/badge/React-18-61dafb?style=flat-square&logo=react)
 ![Node](https://img.shields.io/badge/Node.js-Express-68a063?style=flat-square&logo=node.js)
 ![Gemini AI](https://img.shields.io/badge/AI-Gemini-4285F4?style=flat-square&logo=google)
@@ -160,7 +160,7 @@ ultraGrade/
 | Layer | Technology |
 |-------|-----------|
 | Frontend framework | React 18 + Vite |
-| Styling | Tailwind CSS v3 + DaisyUI v4 |
+| Styling | Tailwind CSS v3 + DaisyUI v4 (green/black dark, green/white light) |
 | Routing | react-router-dom v6 |
 | Animations | framer-motion |
 | Forms | react-hook-form |
