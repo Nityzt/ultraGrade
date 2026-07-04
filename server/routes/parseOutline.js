@@ -5,7 +5,14 @@ import { parseOutlineWithGemini } from '../utils/geminiParser.js';
 
 const router = express.Router();
 const storage = multer.memoryStorage();
-const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024, files: 1 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = file.mimetype === 'application/pdf' || file.mimetype.startsWith('image/');
+    cb(null, allowed);
+  },
+});
 
 router.post('/', upload.single('outline'), async (req, res) => {
   try {
@@ -28,7 +35,14 @@ router.post('/', upload.single('outline'), async (req, res) => {
     res.json({ success: true, data });
   } catch (err) {
     console.error('Parse outline error:', err);
-    res.status(500).json({ success: false, error: err.message || 'Failed to parse outline' });
+    const msg = err.message || '';
+    if (msg.includes('429') || msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('too many requests')) {
+      return res.status(429).json({ success: false, error: 'Gemini API quota exceeded. Free-tier limits reset daily — try again tomorrow, or add billing at aistudio.google.com.' });
+    }
+    if (msg.includes('404') || msg.toLowerCase().includes('not found')) {
+      return res.status(500).json({ success: false, error: 'AI model unavailable. Please check your GEMINI_API_KEY and server configuration.' });
+    }
+    res.status(500).json({ success: false, error: 'Failed to parse outline. Please try again.' });
   }
 });
 

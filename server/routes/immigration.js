@@ -16,7 +16,7 @@ router.get('/:section', async (req, res) => {
     res.json({ success: true, ...data });
   } catch (err) {
     console.error('Immigration fetch error:', err);
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to load immigration information. Please try again.' });
   }
 });
 
