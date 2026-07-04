@@ -3,7 +3,7 @@
 **One-stop academic toolkit for students at Ontario universities.**
 Track grades & GPA, manage your timetable, plan assignments, and access live Canadian immigration info — all in one PWA.
 
-![PWA](https://img.shields.io/badge/PWA-installable-4ade80?style=flat-square)
+![PWA](https://img.shields.io/badge/PWA-installable-0f9d58?style=flat-square)
 ![React](https://img.shields.io/badge/React-18-61dafb?style=flat-square&logo=react)
 ![Node](https://img.shields.io/badge/Node.js-Express-68a063?style=flat-square&logo=node.js)
 ![Gemini AI](https://img.shields.io/badge/AI-Gemini-4285F4?style=flat-square&logo=google)
@@ -139,7 +139,7 @@ ultraGrade/
 └── client/                         # React + Vite frontend
     ├── vercel.json                 # SPA rewrites + cache headers
     ├── vite.config.js              # PWA plugin, /api proxy
-    ├── tailwind.config.js          # DaisyUI green/black + light themes
+    ├── tailwind.config.js          # DaisyUI obsidian+sage / paper+emerald themes
     └── src/
         ├── main.jsx                # Provider tree: Auth > AuthGate > App > AppContext
         ├── App.jsx                 # Routes + auth guards
@@ -170,7 +170,7 @@ ultraGrade/
 | Layer | Technology |
 |-------|-----------|
 | Frontend framework | React 18 + Vite |
-| Styling | Tailwind CSS v3 + DaisyUI v4 (dark/light green theme) |
+| Styling | Tailwind CSS v3 + DaisyUI v4 — "Obsidian + Sage" glass design system (dark sage / light emerald), Hanken Grotesk |
 | Routing | react-router-dom v6 |
 | Animations | framer-motion |
 | Forms | react-hook-form |

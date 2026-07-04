@@ -2,40 +2,126 @@
 @tailwind components;
 @tailwind utilities;
 
-/* DaisyUI global radius overrides — rounder feel throughout */
+/* ── Global radius: 24px cards, pill buttons/badges ─────────────────────── */
 :root {
-  --rounded-box: 1.25rem;
+  --rounded-box: 1.5rem;
   --rounded-btn: 2rem;
   --rounded-badge: 2rem;
 
   /* Grade color tokens — used in CourseCard, CategoryRow, GPADisplay */
-  --grade-green: #4ade80;
-  --grade-blue: #60a5fa;
-  --grade-yellow: #fbbf24;
-  --grade-red: #f87171;
+  --grade-green: #7ee0a3;
+  --grade-blue: #7fb4d6;
+  --grade-yellow: #f7bb7e;
+  --grade-red: #ffb4ab;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: hsl(var(--b3)); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: hsl(var(--p)); }
+html { font-family: 'Hanken Grotesk', 'Inter', system-ui, sans-serif; }
 
-/* Print styles */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Ambient page atmosphere — a soft sage bloom anchored to the canvas ──── */
+[data-theme='ultragrade-dark'] body {
+  background:
+    radial-gradient(1100px 620px at 82% -8%, rgba(181, 205, 183, 0.07), transparent 60%),
+    radial-gradient(900px 520px at -6% 108%, rgba(247, 187, 126, 0.05), transparent 60%),
+    #0d1117;
+  background-attachment: fixed;
+}
+[data-theme='ultragrade-light'] body {
+  background:
+    radial-gradient(1000px 560px at 84% -10%, rgba(15, 157, 88, 0.06), transparent 60%),
+    radial-gradient(760px 460px at -6% 110%, rgba(224, 145, 63, 0.05), transparent 60%),
+    #eef2ef;
+  background-attachment: fixed;
+}
+
+@layer components {
+  /* ── Glass card — the signature raised surface ───────────────────────── */
+  .glass-card {
+    @apply rounded-[24px];
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
+  }
+  [data-theme='ultragrade-dark'] .glass-card {
+    background: rgba(22, 27, 34, 0.62);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.40);
+  }
+  [data-theme='ultragrade-light'] .glass-card {
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid rgba(20, 40, 28, 0.06);
+    box-shadow: 0 10px 30px rgba(30, 50, 38, 0.06);
+  }
+  .glass-card.glass-hover:hover {
+    transform: translateY(-2px);
+  }
+  [data-theme='ultragrade-dark'] .glass-card.glass-hover:hover {
+    border-color: rgba(181, 205, 183, 0.22);
+    box-shadow: inset 0 0 0 1px rgba(181, 205, 183, 0.14), 0 12px 38px rgba(0, 0, 0, 0.48);
+  }
+  [data-theme='ultragrade-light'] .glass-card.glass-hover:hover {
+    border-color: rgba(15, 157, 88, 0.22);
+    box-shadow: 0 16px 40px rgba(30, 50, 38, 0.10);
+  }
+
+  /* Give every DaisyUI card the same refined edge without touching each page */
+  .card:not(.glass-card) {
+    border: 1px solid hsl(var(--b3) / 0.6);
+  }
+  [data-theme='ultragrade-dark'] .card:not(.glass-card) {
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.28);
+  }
+  [data-theme='ultragrade-light'] .card:not(.glass-card) {
+    box-shadow: 0 8px 24px rgba(30, 50, 38, 0.05);
+  }
+}
+
+/* ── Signature glows ────────────────────────────────────────────────────── */
+[data-theme='ultragrade-dark'] .glow-sage {
+  text-shadow: 0 0 22px rgba(181, 205, 183, 0.35);
+}
+[data-theme='ultragrade-light'] .glow-sage {
+  text-shadow: 0 0 22px rgba(15, 157, 88, 0.18);
+}
+.bloom-dot {
+  box-shadow: 0 0 12px 1px currentColor;
+}
+
+/* Numeric display — tabular figures for aligned stats */
+.tabular { font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+
+/* ── Scrollbar ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: hsl(var(--b3)); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--p) / 0.6); }
+
+/* ── Print ──────────────────────────────────────────────────────────────── */
 @media print {
   .no-print { display: none !important; }
   .print-only { display: block !important; }
   body { background: white; color: black; }
 }
-
 .print-only { display: none; }
 
-/* Smooth transitions */
+/* Smooth token transitions */
 * { transition-property: background-color, border-color, color; transition-duration: 150ms; }
 
-/* JetBrains Mono for numbers */
 .font-mono { font-family: 'JetBrains Mono', monospace; }
 
-/* iOS safe area — apply pb-safe to BottomNav to avoid home indicator overlap */
+/* iOS safe area */
 .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
 .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+
+/* ── Reduced motion ─────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

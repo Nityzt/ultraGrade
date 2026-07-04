@@ -13,27 +13,22 @@ export default function QuickStatsRow() {
   const total = activeTasks.length;
 
   const stats = [
-    { icon: BookOpen, label: 'Courses', value: activeCourses.length, iconBg: 'bg-primary/10', iconColor: 'text-primary', valueColor: 'text-primary' },
-    { icon: Clock, label: 'Classes Today', value: classesToday, iconBg: 'bg-info/10', iconColor: 'text-info', valueColor: 'text-info' },
-    { icon: CheckSquare, label: 'Tasks Done', value: `${completed}/${total}`, iconBg: 'bg-success/10', iconColor: 'text-success', valueColor: 'text-success' },
-    { icon: AlertTriangle, label: 'Overdue', value: overdue, iconBg: overdue > 0 ? 'bg-error/10' : 'bg-base-300/30', iconColor: overdue > 0 ? 'text-error' : 'text-base-content/40', valueColor: overdue > 0 ? 'text-error' : 'text-base-content/40' },
+    { icon: BookOpen, label: 'Courses', value: activeCourses.length, chip: 'bg-primary/12 text-primary', val: 'text-base-content' },
+    { icon: Clock, label: 'Classes today', value: classesToday, chip: 'bg-info/12 text-info', val: 'text-base-content' },
+    { icon: CheckSquare, label: 'Tasks done', value: `${completed}/${total}`, chip: 'bg-success/12 text-success', val: 'text-base-content' },
+    { icon: AlertTriangle, label: 'Overdue', value: overdue, chip: overdue > 0 ? 'bg-error/12 text-error' : 'bg-base-content/8 text-base-content/40', val: overdue > 0 ? 'text-error' : 'text-base-content/50' },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-      {stats.map(({ icon: Icon, label, value, iconBg, iconColor, valueColor }) => (
-        <div
-          key={label}
-          className="card bg-base-200 shadow-sm hover:-translate-y-0.5 transition-transform duration-150 cursor-default"
-        >
-          <div className="card-body p-4 flex-row items-center gap-3">
-            <div className={`p-2.5 rounded-xl ${iconBg} shrink-0`}>
-              <Icon size={18} className={iconColor} />
-            </div>
-            <div>
-              <div className={`text-2xl font-bold font-mono ${valueColor}`}>{value}</div>
-              <div className="text-xs text-base-content/50 leading-tight">{label}</div>
-            </div>
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+      {stats.map(({ icon: Icon, label, value, chip, val }) => (
+        <div key={label} className="glass-card glass-hover p-4 flex items-center gap-3.5">
+          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${chip}`}>
+            <Icon size={19} />
+          </div>
+          <div className="min-w-0">
+            <div className={`text-2xl font-display font-bold tabular leading-none ${val}`}>{value}</div>
+            <div className="text-[11px] text-base-content/45 mt-1 truncate">{label}</div>
           </div>
         </div>
       ))}

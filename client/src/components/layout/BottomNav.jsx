@@ -7,18 +7,23 @@ function NavItem({ to, icon: Icon, label }) {
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `flex flex-col items-center gap-0.5 flex-1 py-2 transition-colors ${
-          isActive ? 'text-primary' : 'text-base-content/40'
+        `group relative flex flex-col items-center justify-center flex-1 h-full transition-colors duration-200 ${
+          isActive ? 'text-primary' : 'text-base-content/45 hover:text-base-content/80'
         }`
       }
     >
       {({ isActive }) => (
-        <div className="flex flex-col items-center gap-0.5">
-          <div className={`p-1.5 rounded-xl transition-all ${isActive ? 'bg-primary/15' : ''}`}>
-            <Icon size={19} />
-          </div>
-          <span className="text-[9px] font-semibold tracking-wide uppercase">{label}</span>
-        </div>
+        <>
+          {isActive && (
+            <span className="absolute top-0 w-8 h-1 rounded-b-full bg-primary shadow-bloom" />
+          )}
+          <Icon
+            size={21}
+            className="mb-1 transition-transform duration-200 group-active:scale-90"
+            style={isActive ? { filter: 'drop-shadow(0 0 6px hsl(var(--p) / 0.55))' } : undefined}
+          />
+          <span className="text-[9px] font-bold tracking-wide uppercase">{label}</span>
+        </>
       )}
     </NavLink>
   );
@@ -29,7 +34,7 @@ export default function BottomNav() {
   const isInt = settings.studentType === 'international';
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-base-200 border-t border-base-300 flex items-center z-40 pb-safe no-print px-2">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex items-stretch h-20 pb-safe px-2 no-print bg-base-200/85 backdrop-blur-2xl border-t border-base-content/8 rounded-t-[24px] shadow-[0_-8px_32px_rgba(0,0,0,0.28)]">
       <NavItem to="/" icon={LayoutDashboard} label="Home" />
       <NavItem to="/grades" icon={GraduationCap} label="Grades" />
       <NavItem to="/timetable" icon={Calendar} label="Schedule" />

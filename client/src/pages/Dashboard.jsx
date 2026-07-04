@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import QuickStatsRow from '../components/dashboard/QuickStatsRow';
 import GPASummaryWidget from '../components/dashboard/GPASummaryWidget';
 import UpcomingDeadlinesWidget from '../components/dashboard/UpcomingDeadlinesWidget';
@@ -57,22 +56,18 @@ function AddSemesterModal({ open, onClose }) {
 
 function EmptyDashboard({ onCreateSemester }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4"
-    >
-      <div className="mb-6 p-6 bg-primary/10 rounded-full">
-        <GraduationCap size={64} className="text-primary" />
+    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4 animate-fade-up">
+      <div className="mb-6 w-24 h-24 rounded-[28px] bg-primary/12 border border-primary/20 flex items-center justify-center shadow-bloom">
+        <GraduationCap size={52} className="text-primary" />
       </div>
-      <h2 className="text-2xl font-bold mb-2">Welcome to ultraGrade</h2>
-      <p className="text-base-content/60 mb-6 max-w-sm">
-        Get started by creating your first semester. You can then add courses, set your timetable, and track assignments.
+      <h2 className="text-2xl font-display font-bold mb-2">Welcome to ultraGrade</h2>
+      <p className="text-base-content/55 mb-6 max-w-sm">
+        Start by creating your first semester. Then add courses, build your timetable, and track every deadline.
       </p>
-      <button onClick={onCreateSemester} className="btn btn-primary gap-2">
-        <PlusCircle size={18} /> Create Your First Semester
+      <button onClick={onCreateSemester} className="btn btn-primary gap-2 rounded-full">
+        <PlusCircle size={18} /> Create your first semester
       </button>
-    </motion.div>
+    </div>
   );
 }
 
@@ -101,22 +96,28 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-4 md:p-6 space-y-4 max-w-5xl">
+    <div className="p-4 md:p-7 space-y-5">
       {/* Greeting */}
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold">{greeting}{settings.studentName ? `, ${settings.studentName}` : ''}!</h1>
-        {activeSemester && (
-          <p className="text-base-content/60 text-sm">
-            {activeSemester.name} · {today.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' })}
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 animate-fade-up">
+        <div>
+          <p className="text-sm text-base-content/50 mb-1">
+            {today.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' })}
           </p>
+          <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight">
+            {greeting}{settings.studentName ? `, ${settings.studentName}` : ''}<span className="text-primary">.</span>
+          </h1>
+        </div>
+        {activeSemester && (
+          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-base-200/70 border border-base-300/60 backdrop-blur-sm self-start sm:self-auto">
+            <span className="w-2 h-2 rounded-full bg-primary bloom-dot text-primary" />
+            <span className="text-xs font-medium text-base-content/70">{activeSemester.name}</span>
+          </div>
         )}
-      </motion.div>
+      </div>
 
       {/* Permit expiry warning */}
       {hasPermitExpiry && daysUntilExpiry !== null && daysUntilExpiry <= 60 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+        <div
           className={`alert ${daysUntilExpiry <= 14 ? 'alert-error' : 'alert-warning'} shadow-sm`}
         >
           <AlertCircle size={18} />
@@ -131,7 +132,7 @@ export default function Dashboard() {
             </div>
           </div>
           <button onClick={() => navigate('/immigration')} className="btn btn-sm">Immigration Hub</button>
-        </motion.div>
+        </div>
       )}
 
       {/* No active semester */}
@@ -144,28 +145,30 @@ export default function Dashboard() {
       )}
 
       {/* Quick stats */}
-      <QuickStatsRow />
+      <div className="animate-fade-up" style={{ animationDelay: '60ms' }}>
+        <QuickStatsRow />
+      </div>
 
-      {/* Main widgets grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        <div className="xl:col-span-1">
+      {/* Bento grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-5">
+        <div className="lg:col-span-5 animate-fade-up" style={{ animationDelay: '120ms' }}>
           <GPASummaryWidget />
         </div>
-        <div className="xl:col-span-2">
-          <UpcomingDeadlinesWidget />
-        </div>
-        <div className="xl:col-span-1">
+        <div className="lg:col-span-4 animate-fade-up" style={{ animationDelay: '180ms' }}>
           <TodaysScheduleWidget />
         </div>
-        <div className="md:col-span-2 xl:col-span-2">
+        <div className="lg:col-span-3 animate-fade-up" style={{ animationDelay: '240ms' }}>
+          <UpcomingDeadlinesWidget />
+        </div>
+        <div className="lg:col-span-12 animate-fade-up" style={{ animationDelay: '300ms' }}>
           <CourseStatusWidget />
         </div>
       </div>
 
       {/* Add semester button */}
-      <div className="pt-2 flex justify-end">
-        <button onClick={() => setAddSemOpen(true)} className="btn btn-ghost btn-sm gap-2">
-          <PlusCircle size={14} /> New Semester
+      <div className="pt-1 flex justify-end">
+        <button onClick={() => setAddSemOpen(true)} className="btn btn-ghost btn-sm gap-2 rounded-full">
+          <PlusCircle size={14} /> New semester
         </button>
       </div>
 

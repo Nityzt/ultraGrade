@@ -43,7 +43,7 @@ export default function Grades() {
       head: [['Code', 'Course Name', 'Credits', 'Grade %', 'Letter', 'GPA Pts']],
       body: rows,
       theme: 'striped',
-      headStyles: { fillColor: [99, 102, 241] }
+      headStyles: { fillColor: [15, 157, 88] }
     });
 
     const gpa = calcSemesterGPA(activeCourses, settings.gpaScale);
