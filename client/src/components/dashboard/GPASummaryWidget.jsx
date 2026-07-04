@@ -6,8 +6,9 @@ import { Link } from 'react-router-dom';
 export default function GPASummaryWidget() {
   const { activeCourses, settings } = useApp();
   const gpa = calcSemesterGPA(activeCourses, settings.gpaScale);
+  const hasGpa = gpa !== null && !isNaN(gpa);
   const maxGpa = settings.gpaScale === 'york-9.0' ? 9.0 : 4.0;
-  const pct = maxGpa > 0 && !isNaN(gpa) ? (gpa / maxGpa) * 100 : 0;
+  const pct = hasGpa && maxGpa > 0 ? (gpa / maxGpa) * 100 : 0;
 
   const progressColor = pct >= 80 ? 'bg-success' : pct >= 70 ? 'bg-info' : pct >= 60 ? 'bg-warning' : 'bg-error';
   const textColor = pct >= 80 ? 'text-success' : pct >= 70 ? 'text-info' : pct >= 60 ? 'text-warning' : 'text-error';
@@ -27,7 +28,7 @@ export default function GPASummaryWidget() {
           <div className="space-y-3">
             <div className="flex items-baseline gap-2">
               <span className={`text-5xl font-bold font-mono ${textColor}`}>
-                {isNaN(gpa) ? '—' : gpa.toFixed(2)}
+                {hasGpa ? gpa.toFixed(2) : '—'}
               </span>
               <span className="text-sm text-base-content/40">/ {maxGpa.toFixed(1)}</span>
             </div>
