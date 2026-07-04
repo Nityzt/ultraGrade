@@ -1,9 +1,10 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { validateOutline } from './outlineSchema.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// Upgrade model here: change 'gemini-2.0-flash-lite' to 'gemini-1.5-pro' for better accuracy
-const MODEL = 'gemini-2.0-flash-lite';
+// gemini-2.0-flash (and -lite) now report free-tier limit: 0 — use 2.5-flash.
+const MODEL = 'gemini-2.5-flash';
 
 const SYSTEM_PROMPT = `You are parsing a university course outline (syllabus).
 Extract and return ONLY valid JSON with these fields:
@@ -11,7 +12,8 @@ Extract and return ONLY valid JSON with these fields:
 - courseCode (string, e.g. "EECS 3311")
 - professor (string)
 - creditHours (number)
-- schedule (array of { dayOfWeek: 0-6, startTime: "HH:MM", endTime: "HH:MM", location: string, type: "lecture"|"lab"|"tutorial" })
+- schedule (array of { dayOfWeek, startTime: "HH:MM" 24-hour, endTime: "HH:MM" 24-hour, location: string, type: "lecture"|"lab"|"tutorial" })
+  dayOfWeek is a number where 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday
 - assessments (array of { name: string, weight: integer } — weights should sum to 100)
 - deadlines (array of { title: string, date: "YYYY-MM-DD", type: "assignment"|"exam"|"quiz"|"project" })
 
@@ -53,9 +55,12 @@ export async function parseOutlineWithGemini(text, imageBase64, mimeType) {
   // Strip markdown code fences if Gemini wraps in them
   const cleaned = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
 
+  let parsed;
   try {
-    return JSON.parse(cleaned);
+    parsed = JSON.parse(cleaned);
   } catch (e) {
     throw new Error(`Gemini returned invalid JSON: ${cleaned.slice(0, 200)}`);
   }
+
+  return validateOutline(parsed);
 }
