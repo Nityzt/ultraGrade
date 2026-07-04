@@ -179,7 +179,7 @@ ultraGrade/
 | Auth + DB | Supabase (Google OAuth + email/password, PostgreSQL + RLS) |
 | PDF export | jsPDF + jspdf-autotable |
 | Backend | Node.js + Express |
-| AI parsing | Google Gemini `gemini-2.0-flash` |
+| AI parsing | Google Gemini `gemini-2.5-flash` |
 | File uploads | multer (memory storage) |
 | PDF text extraction | pdf-parse |
 | JWT verification | jose (JWKS endpoint) |
