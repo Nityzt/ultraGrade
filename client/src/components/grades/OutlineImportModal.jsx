@@ -3,11 +3,10 @@ import { Upload, CheckCircle, AlertCircle, Loader, FileText } from 'lucide-react
 import Modal from '../ui/Modal.jsx';
 import axios from 'axios';
 import { useApp } from '../../context/AppContext.jsx';
-import { useAuth } from '../../context/AuthContext.jsx';
+import { supabase } from '../../lib/supabase.js';
 
 export default function OutlineImportModal({ isOpen, onClose }) {
   const { importFromOutline } = useApp();
-  const { session } = useAuth();
   const [status, setStatus] = useState('idle'); // idle | loading | preview | error
   const [parsed, setParsed] = useState(null);
   const [error, setError] = useState('');
@@ -18,12 +17,21 @@ export default function OutlineImportModal({ isOpen, onClose }) {
     setStatus('loading');
     setError('');
     try {
+      // Fetch a fresh session so an expired access token is refreshed before the
+      // request — the token held in context state may have already lapsed.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setError('Your session has expired. Please sign in again.');
+        setStatus('error');
+        return;
+      }
+
       const formData = new FormData();
       formData.append('outline', file);
       const res = await axios.post(`${import.meta.env.VITE_API_URL ?? ''}/api/parse-outline`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
-          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+          Authorization: `Bearer ${session.access_token}`,
         }
       });
       if (res.data.success) {
