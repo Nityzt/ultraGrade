@@ -1,5 +1,6 @@
+import { useState, useRef, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, GraduationCap, Calendar, ClipboardList, Globe, BookOpen, Settings, ChevronDown, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, GraduationCap, Calendar, ClipboardList, Globe, BookOpen, Settings, ChevronDown, Sun, Moon, Check } from 'lucide-react';
 import { useApp } from '../../context/AppContext.jsx';
 import { calcSemesterGPA } from '../../utils/gradeCalculations.js';
 import UserMenu from './UserMenu.jsx';
@@ -26,8 +27,78 @@ function NavItem({ to, icon: Icon, label }) {
   );
 }
 
+/**
+ * Controlled semester selector.
+ *
+ * DaisyUI's focus-based dropdown can't close on a second click of its own
+ * trigger (re-clicking just keeps focus). This is a plain controlled menu, so
+ * it toggles on trigger click and closes on selection, outside-click, or Esc.
+ */
+function SemesterSelector() {
+  const { semesters, activeSemester, setActiveSemester } = useApp();
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  if (semesters.length === 0) return null;
+
+  return (
+    <div className="mb-3 relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className="pill pill-hover w-full flex items-center justify-between gap-2 px-3.5 py-2 text-xs font-medium text-base-content/70"
+      >
+        <span className="truncate">{activeSemester?.name || 'Select Semester'}</span>
+        <ChevronDown size={13} className={`shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <ul
+          role="listbox"
+          className="absolute z-50 mt-1.5 w-full glass-card rounded-2xl p-1.5 max-h-72 overflow-y-auto animate-fade-up"
+          style={{ animationDuration: '0.18s' }}
+        >
+          {semesters.map(s => {
+            const active = activeSemester?.id === s.id;
+            return (
+              <li key={s.id}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={active}
+                  onClick={() => { setActiveSemester(s.id); setOpen(false); }}
+                  className={`w-full flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm text-left transition-colors ${
+                    active ? 'bg-primary/12 text-primary font-medium' : 'text-base-content/70 hover:bg-base-content/5'
+                  }`}
+                >
+                  <span className="truncate">{s.name}</span>
+                  {active && <Check size={13} className="shrink-0" />}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export default function Sidebar() {
-  const { settings, semesters, activeSemester, activeCourses, setActiveSemester, updateSettings } = useApp();
+  const { settings, activeCourses, updateSettings } = useApp();
 
   const gpa = calcSemesterGPA(activeCourses, settings.gpaScale);
   const isInt = settings.studentType === 'international';
@@ -54,28 +125,7 @@ export default function Sidebar() {
       </div>
 
       {/* Semester selector */}
-      {semesters.length > 0 && (
-        <div className="mb-3">
-          <div className="dropdown dropdown-bottom w-full">
-            <label tabIndex={0} className="btn btn-sm btn-ghost w-full justify-between font-normal text-base-content/60 border border-base-300 rounded-2xl hover:border-primary/40">
-              <span className="truncate text-xs">{activeSemester?.name || 'Select Semester'}</span>
-              <ChevronDown size={13} />
-            </label>
-            <ul tabIndex={0} className="dropdown-content z-50 menu p-2 shadow-xl bg-base-200 rounded-2xl w-full border border-base-300 mt-1">
-              {semesters.map(s => (
-                <li key={s.id}>
-                  <button
-                    className={`rounded-xl text-sm ${activeSemester?.id === s.id ? 'bg-primary/12 text-primary font-medium' : ''}`}
-                    onClick={() => setActiveSemester(s.id)}
-                  >
-                    {s.name}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
+      <SemesterSelector />
 
       {/* GPA Badge */}
       {gpa !== null && (
