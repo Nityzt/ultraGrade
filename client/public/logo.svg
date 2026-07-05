@@ -1,0 +1,30 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ultraGrade">
+  <defs>
+    <radialGradient id="bloom" cx="50%" cy="38%" r="65%">
+      <stop offset="0%" stop-color="#b5cdb7" stop-opacity="0.28"/>
+      <stop offset="60%" stop-color="#b5cdb7" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#b5cdb7" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="board" x1="102" y1="150" x2="410" y2="280" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#d1e9d2"/>
+      <stop offset="100%" stop-color="#b5cdb7"/>
+    </linearGradient>
+  </defs>
+
+  <!-- obsidian tile + ambient sage bloom -->
+  <rect width="512" height="512" rx="112" fill="#0d1117"/>
+  <rect width="512" height="512" rx="112" fill="url(#bloom)"/>
+
+  <!-- cap band (behind board) -->
+  <path d="M168 236 L168 300 C168 336 344 336 344 300 L344 236 Z" fill="#8fae93"/>
+  <path d="M168 236 L168 300 C168 318 256 330 256 330 L256 236 Z" fill="#7d9c82" opacity="0.55"/>
+
+  <!-- mortarboard -->
+  <path d="M256 150 L412 216 L256 282 L100 216 Z" fill="url(#board)"/>
+
+  <!-- button + tassel (sand accent) -->
+  <circle cx="256" cy="216" r="11" fill="#16281a"/>
+  <path d="M256 216 L404 216" stroke="#f7bb7e" stroke-width="7" stroke-linecap="round"/>
+  <path d="M404 216 L404 322" stroke="#f7bb7e" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="404" cy="332" r="15" fill="#f7bb7e"/>
+</svg>
