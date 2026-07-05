@@ -18,14 +18,15 @@ Track grades & GPA, manage your timetable, plan assignments, and access live Can
 | **Dashboard** | Time-based greeting, permit expiry alert, GPA summary, today's schedule, upcoming deadlines, course status widgets |
 | **Grade Calculator** | Weighted categories, drop-lowest, running vs projected grade, "What do I need?" reverse calc |
 | **Multi-GPA Scales** | Standard Ontario 4.0, York New 4.0 (A = 3.90 at 85–89%), York Legacy 9.0 |
-| **AI Outline Parser** | Upload a course PDF or image — Gemini extracts schedule, assessments, and deadlines automatically |
+| **AI Outline Parser** | Upload a course PDF or image — Gemini returns structured JSON for schedule, assessment weights, and deadlines, and resolves relative dates ("Week 5") into real calendar entries using your semester window |
 | **Timetable** | Full weekly grid on desktop; day view + day picker on mobile; printable view |
 | **Assignment Planner** | Tasks grouped by urgency, deadline calendar, filter by type/status/course |
-| **Live Immigration Hub** | Fetched live from Canada.ca: study permit, work rights, PGWP, OHIP (international only) |
+| **Live Immigration Hub** | Study permit, work rights, PGWP, OHIP (international only) — loads instantly with curated content and upgrades to live gov data via background revalidation |
 | **Student Resources** | OSAP, health plans, career links for domestic students |
 | **Study Timer** | Pomodoro 25/5 per course with cumulative hour tracking |
 | **PDF Transcript Export** | Formatted transcript with grades and GPA (desktop) |
-| **Rate My Professors** | Deep links to RMP by professor and course code |
+| **Rate My Professors** | School-scoped deep links — pinpoints the professor at *your* university, not a national namesake list |
+| **Fast grade entry** | Inline quick-add for grades (type a score, press Enter) and categories — no modal round-trips |
 | **Settings** | Name, school, GPA scale, theme, study permit expiry, week start, grade display format |
 | **PWA** | Installable on iPhone & Android, works offline with Workbox caching |
 | **Auth** | Google OAuth + email/password; JWT-protected AI endpoint |
@@ -206,11 +207,11 @@ Select your scale in **Settings → School**. It auto-suggests the correct scale
 On the **Grades** page, click **Import from Outline** when adding a course.
 
 1. Upload a `.pdf`, `.png`, `.jpg`, or `.jpeg` of your course syllabus (max 10 MB)
-2. Gemini extracts: course name/code, professor, credit hours, weekly schedule, assessment weights, and deadline dates
-3. Review the parsed preview — nothing is saved yet
+2. Gemini extracts, as structured JSON: course name/code, professor, credit hours, weekly schedule, assessment weights, and dated deadlines. The active semester's start/end dates are sent along so relative references ("Week 5", "Oct 12", "third Friday") resolve to absolute calendar dates.
+3. Review the parsed preview — it spells out how many grade categories, timetable slots, and calendar deadlines will be created; nothing is saved yet
 4. Click **Import to ultraGrade** — course, timetable entries, and tasks are all created automatically
 
-> Uses `gemini-2.0-flash` (free tier: ~1,500 requests/day). If you get a quota error, the free-tier daily limit has been hit — wait for the reset or enable billing at [Google AI Studio](https://aistudio.google.com). To change models, edit `MODEL` in `server/utils/geminiParser.js`.
+> Uses `gemini-2.5-flash` with JSON structured output (`responseSchema`) and a small retry/backoff for transient 503s (free tier: ~1,500 requests/day). If you get a quota error, the free-tier daily limit has been hit — wait for the reset or enable billing at [Google AI Studio](https://aistudio.google.com). To change models, edit `MODEL` in `server/utils/geminiParser.js`.
 
 ---
 
@@ -218,14 +219,14 @@ On the **Grades** page, click **Import from Outline** when adding a course.
 
 > International students only — toggle your type in **Settings → Profile → Student Type**.
 
-Sections fetched live from official government sources (cached 24 hours):
+Sections:
 
 - **Study Permit** — conditions and restrictions
 - **Work Rights** — off-campus hours during academic sessions
 - **PGWP** — Post-Graduation Work Permit eligibility
 - **OHIP** — provincial health coverage eligibility
 
-Each section shows the source URL, last-fetched time, and a manual Refresh button. Hardcoded fallback content is shown if the live fetch fails.
+The page **never blocks on a slow government host**. Curated content renders immediately; sections marked `preferLive` warm live gov data in the background (stale-while-revalidate, 24 h cache, 10 min negative cache) so the next visit upgrades automatically. The explicit **Refresh** button awaits a live fetch. Each section shows the source URL and last-fetched time.
 
 > Always verify with your school's international student office.
 
