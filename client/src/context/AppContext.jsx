@@ -65,7 +65,6 @@ export function AppProvider({ children }) {
   const updateSettings = useCallback((updates) => {
     setSettings(prev => {
       const next = { ...prev, ...updates };
-      if (updates.theme) document.documentElement.setAttribute('data-theme', updates.theme);
       if (user) sync.upsertProfile(next, user.id).then(({ error }) => {
         if (error) onSyncError('Failed to save settings');
       });
@@ -379,10 +378,8 @@ export function AppProvider({ children }) {
 
   const getStudyHours = useCallback((courseId) => studyHours[courseId] || 0, [studyHours]);
 
-  // Apply saved theme on load
-  if (typeof document !== 'undefined') {
-    document.documentElement.setAttribute('data-theme', settings.theme || 'ultragrade-dark');
-  }
+  // data-theme is applied by the single useEffect in App.jsx (keyed on settings.theme)
+  // and, during an interactive toggle, synchronously by useThemeTransition for the reveal.
 
   const value = {
     semesters, courses, timetableEntries, tasks, settings, studyHours,

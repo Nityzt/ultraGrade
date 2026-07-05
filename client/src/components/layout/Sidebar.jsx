@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, GraduationCap, Calendar, ClipboardList, Globe, BookOpen, Settings, ChevronDown, Sun, Moon, Check } from 'lucide-react';
 import { useApp } from '../../context/AppContext.jsx';
+import { useThemeTransition } from '../../hooks/useThemeTransition.js';
 import { calcSemesterGPA } from '../../utils/gradeCalculations.js';
 import UserMenu from './UserMenu.jsx';
 
@@ -98,15 +99,11 @@ function SemesterSelector() {
 }
 
 export default function Sidebar() {
-  const { settings, activeCourses, updateSettings } = useApp();
+  const { settings, activeCourses } = useApp();
+  const { isDark, toggle: toggleTheme } = useThemeTransition();
 
   const gpa = calcSemesterGPA(activeCourses, settings.gpaScale);
   const isInt = settings.studentType === 'international';
-  const isDark = settings.theme === 'ultragrade-dark';
-
-  const toggleTheme = () => {
-    updateSettings({ theme: isDark ? 'ultragrade-light' : 'ultragrade-dark' });
-  };
 
   return (
     <aside className="hidden md:flex flex-col w-64 h-full shrink-0 bg-base-200/70 backdrop-blur-xl border-r border-base-300/60 p-4 gap-1 overflow-y-auto no-print">
