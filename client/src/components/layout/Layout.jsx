@@ -2,8 +2,10 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar.jsx';
 import BottomNav from './BottomNav.jsx';
 import OfflineIndicator from '../ui/OfflineIndicator.jsx';
+import { useCardSpotlight } from '../../hooks/useCardSpotlight.js';
 
 export default function Layout() {
+  useCardSpotlight();
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
