@@ -92,7 +92,7 @@ export default function Login() {
           </div>
         </div>
 
-        <div className="card bg-base-200 border border-base-300 shadow-2xl">
+        <div className="glass-card shadow-2xl">
           <div className="card-body gap-5 p-6">
             {/* Pill tab switcher */}
             <div className="flex gap-1 p-1 bg-base-300/40 rounded-2xl">

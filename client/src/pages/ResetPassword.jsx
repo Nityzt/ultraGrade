@@ -81,7 +81,7 @@ export default function ResetPassword() {
           </div>
         </div>
 
-        <div className="card bg-base-200 border border-base-300 shadow-xl">
+        <div className="glass-card shadow-xl">
           <div className="card-body gap-5">
             {status && (
               <div className={`alert ${status.type === 'success' ? 'alert-success' : 'alert-error'} py-2.5 text-sm`}>

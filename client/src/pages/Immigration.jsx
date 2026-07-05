@@ -77,7 +77,7 @@ export default function Immigration() {
 
       {/* Permit expiry reminder */}
       {settings.permitExpiryDate && (
-        <div className="card bg-base-200 shadow-sm p-4 flex items-center gap-3 text-sm">
+        <div className="glass-card p-4 flex items-center gap-3 text-sm">
           <Shield size={20} className="text-primary flex-shrink-0" />
           <div>
             <span className="font-medium">Your study permit expiry: </span>
