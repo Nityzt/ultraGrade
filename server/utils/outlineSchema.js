@@ -47,7 +47,14 @@ function lenientArray(itemSchema) {
     });
 }
 
-const optionalText = z.string().trim().optional().catch(undefined);
+// Structured output returns "" for fields it couldn't fill — normalise those
+// (and whitespace) to undefined so they prune away instead of showing blank.
+const optionalText = z
+  .string()
+  .trim()
+  .optional()
+  .catch(undefined)
+  .transform((v) => (v ? v : undefined));
 
 const outlineSchema = z
   .object({

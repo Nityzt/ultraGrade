@@ -6,7 +6,7 @@ import { useApp } from '../../context/AppContext.jsx';
 import { supabase } from '../../lib/supabase.js';
 
 export default function OutlineImportModal({ isOpen, onClose }) {
-  const { importFromOutline } = useApp();
+  const { importFromOutline, activeSemester } = useApp();
   const [status, setStatus] = useState('idle'); // idle | loading | preview | error
   const [parsed, setParsed] = useState(null);
   const [error, setError] = useState('');
@@ -28,6 +28,11 @@ export default function OutlineImportModal({ isOpen, onClose }) {
 
       const formData = new FormData();
       formData.append('outline', file);
+      // Give Gemini the semester window so it can resolve relative deadline
+      // references ("Week 5", "Oct 12") into real dated calendar entries.
+      if (activeSemester?.name) formData.append('semesterName', activeSemester.name);
+      if (activeSemester?.startDate) formData.append('semesterStart', activeSemester.startDate);
+      if (activeSemester?.endDate) formData.append('semesterEnd', activeSemester.endDate);
       const res = await axios.post(`${import.meta.env.VITE_API_URL ?? ''}/api/parse-outline`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -115,8 +120,16 @@ export default function OutlineImportModal({ isOpen, onClose }) {
             </div>
           )}
 
-          {parsed.schedule?.length > 0 && (
-            <p className="text-xs text-base-content/50">+ {parsed.schedule.length} timetable slot(s) · {parsed.deadlines?.length || 0} deadline(s)</p>
+          {/* Spell out what lands where, so the import feels predictable. */}
+          <div className="flex flex-wrap gap-2 text-xs">
+            <span className="pill px-2.5 py-1 text-base-content/70">{parsed.assessments?.length || 0} grade categories</span>
+            <span className="pill px-2.5 py-1 text-base-content/70">{parsed.schedule?.length || 0} timetable slots</span>
+            <span className="pill px-2.5 py-1 text-base-content/70">{parsed.deadlines?.length || 0} calendar deadlines</span>
+          </div>
+          {!parsed.deadlines?.length && (
+            <p className="text-xs text-warning/80">
+              No dated deadlines were found in this outline — nothing will be added to your calendar. You can add tasks manually in the Planner.
+            </p>
           )}
 
           <div className="flex gap-3 pt-2">
