@@ -1,8 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
+import { MotionConfig } from 'framer-motion';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { AppProvider } from './context/AppContext';
+import { ToastProvider } from './components/ui/Toast.jsx';
 import App from './App';
 import './index.css';
 
@@ -21,13 +23,17 @@ function AuthLoadingGate({ children }) {
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <AuthLoadingGate>
-          <AppProvider>
-            <App />
-          </AppProvider>
-        </AuthLoadingGate>
-      </AuthProvider>
+      <MotionConfig reducedMotion="user">
+        <AuthProvider>
+          <AuthLoadingGate>
+            <AppProvider>
+              <ToastProvider>
+                <App />
+              </ToastProvider>
+            </AppProvider>
+          </AuthLoadingGate>
+        </AuthProvider>
+      </MotionConfig>
     </BrowserRouter>
   </React.StrictMode>
 );

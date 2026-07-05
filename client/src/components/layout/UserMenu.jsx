@@ -38,6 +38,7 @@ export default function UserMenu() {
         onClick={signOut}
         className="btn btn-ghost btn-xs btn-circle text-base-content/50 hover:text-error"
         title="Sign out"
+        aria-label="Sign out"
       >
         <LogOut size={14} />
       </button>

@@ -216,10 +216,10 @@ export default function CourseCard({ course, onEdit }) {
             <Timer size={11} /> Study
           </button>
           <div className="ml-auto flex gap-1">
-            <button onClick={onEdit} className="btn btn-xs btn-ghost btn-circle hover:bg-base-300">
+            <button onClick={onEdit} className="btn btn-xs btn-ghost btn-circle hover:bg-base-300" aria-label={`Edit ${course.code || 'course'}`}>
               <Pencil size={12} />
             </button>
-            <button onClick={() => setConfirmDelete(true)} className="btn btn-xs btn-ghost btn-circle text-error/60 hover:text-error">
+            <button onClick={() => setConfirmDelete(true)} className="btn btn-xs btn-ghost btn-circle text-error/60 hover:text-error" aria-label={`Delete ${course.code || 'course'}`}>
               <Trash2 size={12} />
             </button>
           </div>

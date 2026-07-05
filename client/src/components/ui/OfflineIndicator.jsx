@@ -18,8 +18,8 @@ export default function OfflineIndicator() {
   if (!offline) return null;
 
   return (
-    <div className="mx-4 mt-3 alert alert-warning py-2.5 text-sm gap-2 no-print">
-      <WifiOff size={16} />
+    <div className="mx-4 mt-3 alert alert-warning py-2.5 text-sm gap-2 no-print" role="status" aria-live="polite">
+      <WifiOff size={16} aria-hidden="true" />
       <span>You're offline — changes will sync when reconnected.</span>
     </div>
   );
