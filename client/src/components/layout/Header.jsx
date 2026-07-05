@@ -2,7 +2,7 @@ import { Sun, Moon } from 'lucide-react';
 import { useThemeTransition } from '../../hooks/useThemeTransition.js';
 
 export default function Header({ title, actions }) {
-  const { isDark, toggle } = useThemeTransition();
+  const { isDark, toggleProps } = useThemeTransition();
 
   return (
     <header className="flex items-center justify-between px-4 md:px-6 py-4 bg-base-100/70 backdrop-blur-xl border-b border-base-300/50 sticky top-0 z-30 no-print">
@@ -12,7 +12,7 @@ export default function Header({ title, actions }) {
       <div className="flex items-center gap-2">
         {actions}
         <button
-          onClick={toggle}
+          {...toggleProps}
           className="btn btn-sm btn-ghost btn-circle md:hidden text-base-content/50 hover:text-primary"
           aria-label="Toggle theme"
         >

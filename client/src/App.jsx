@@ -45,8 +45,14 @@ function DomesticOnly() {
 export default function App() {
   const { settings } = useApp();
 
+  // Reconcile the persisted theme onto <html> (initial load + external changes).
+  // Guarded so it never re-writes a value the theme-transition hook already applied
+  // mid-sweep — a redundant write would desync the active reveal.
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', settings.theme || 'ultragrade-dark');
+    const next = settings.theme || 'ultragrade-dark';
+    if (document.documentElement.getAttribute('data-theme') !== next) {
+      document.documentElement.setAttribute('data-theme', next);
+    }
   }, [settings.theme]);
 
   return (

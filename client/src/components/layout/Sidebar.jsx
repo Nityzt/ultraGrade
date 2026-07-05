@@ -100,7 +100,7 @@ function SemesterSelector() {
 
 export default function Sidebar() {
   const { settings, activeCourses } = useApp();
-  const { isDark, toggle: toggleTheme } = useThemeTransition();
+  const { isDark, toggleProps } = useThemeTransition();
 
   const gpa = calcSemesterGPA(activeCourses, settings.gpaScale);
   const isInt = settings.studentType === 'international';
@@ -147,9 +147,9 @@ export default function Sidebar() {
 
       {/* Theme toggle + user */}
       <div className="mt-auto pt-3 border-t border-base-300/60 flex flex-col gap-1">
-        <div className="flex items-center justify-between px-2 py-1">
+        <div className="flex items-center justify-between px-2 py-1 select-none">
           <span className="text-xs text-base-content/40">{isDark ? 'Dark mode' : 'Light mode'}</span>
-          <button onClick={toggleTheme} className="btn btn-xs btn-ghost btn-circle text-base-content/50 hover:text-primary" aria-label="Toggle theme">
+          <button {...toggleProps} className="btn btn-xs btn-ghost btn-circle text-base-content/50 hover:text-primary" aria-label="Toggle theme">
             {isDark ? <Sun size={15} /> : <Moon size={15} />}
           </button>
         </div>
