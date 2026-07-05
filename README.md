@@ -249,18 +249,24 @@ The app works offline once installed — grades, timetable, and tasks are always
 ### Backend — [Render](https://render.com)
 1. New Web Service → connect GitHub repo
 2. Root directory: `server`, start command: `npm start`
-3. Set env vars: `GEMINI_API_KEY`, `SUPABASE_URL`, `CLIENT_URL` (your Vercel URL), `PORT`
-4. Copy the Render URL (e.g. `https://ultragrade-api.onrender.com`)
+3. Set env vars: `GEMINI_API_KEY`, `SUPABASE_URL`, `CLIENT_URL` (your Vercel URL, no trailing slash), `PORT`
+4. Copy the Render URL (current production: `https://ultragrade.onrender.com`)
 
 ### Frontend — [Vercel](https://vercel.com)
 1. New project → import repo → **Root directory**: `client`
-2. Set env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_URL` (your Render URL)
-3. Deploy → copy the Vercel URL
+2. Set env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_URL` (your Render URL, no trailing slash)
+3. Deploy → copy the Vercel URL (current production: `https://ultra-grade.vercel.app`)
 
 ### Post-deployment
-- Update Render `CLIENT_URL` → your Vercel URL (for CORS)
-- Supabase → **Authentication → URL Configuration**: add Vercel URL to Site URL + Redirect URLs
-- If using Google OAuth: Google Cloud Console → OAuth client → add Vercel URL to Authorized Origins
+- Render `CLIENT_URL`: `https://ultra-grade.vercel.app`
+- Vercel `VITE_API_URL`: `https://ultragrade.onrender.com`
+- Supabase → **Authentication → URL Configuration**:
+  - Site URL: `https://ultra-grade.vercel.app`
+  - Redirect URLs: `https://ultra-grade.vercel.app/**`, `https://ultra-grade.vercel.app/reset-password`, and the localhost URLs used for development
+- If using Google OAuth: Google Cloud Console → OAuth client:
+  - Authorized JavaScript origins: `https://ultra-grade.vercel.app`, plus `http://localhost:5173` for development
+  - Authorized redirect URIs: the Supabase callback URL from Supabase's Google provider settings
+- After changing Vercel env vars, trigger a fresh production redeploy. Vite bakes `VITE_*` values into the static build.
 
 ---
 

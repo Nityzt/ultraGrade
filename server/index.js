@@ -10,12 +10,13 @@ import immigrationRouter from './routes/immigration.js';
 const app = express();
 const PORT = process.env.PORT || 3001;
 const isProd = process.env.NODE_ENV === 'production';
+const clientUrl = (process.env.CLIENT_URL || 'http://localhost:5173').replace(/\/+$/, '');
 
 // Behind Render/Vercel proxies — needed for correct req.ip (rate limiting).
 app.set('trust proxy', 1);
 
 app.use(helmet());
-app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173' }));
+app.use(cors({ origin: clientUrl }));
 app.use(express.json({ limit: '100kb' }));
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
@@ -34,6 +35,11 @@ app.use(
   rateLimit({ name: 'immigration', limit: 60, windowMs: 60 * 1000 }),
   immigrationRouter
 );
+
+// Unknown API routes → JSON 404 (never fall through to an HTML error page).
+app.use('/api', (_req, res) => {
+  res.status(404).json({ success: false, error: 'Not found' });
+});
 
 app.use((err, _req, res, _next) => {
   console.error(err.stack);

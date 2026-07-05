@@ -5,6 +5,7 @@ import InfoSection from '../components/immigration/InfoSection';
 import WorkRightsTable from '../components/immigration/WorkRightsTable';
 import ResourceCard from '../components/immigration/ResourceCard';
 import PageHeader from '../components/ui/PageHeader';
+import { API_BASE_URL } from '../lib/apiBase';
 import { Shield, Briefcase, Award, Heart, BookOpen, ExternalLink, AlertTriangle, Globe } from 'lucide-react';
 
 const SECTIONS = [
@@ -28,8 +29,7 @@ function useImmigrationData() {
   const fetchSection = useCallback(async (section, force = false) => {
     setLoading(l => ({ ...l, [section]: true }));
     try {
-      const base = import.meta.env.VITE_API_URL ?? '';
-      const url = force ? `${base}/api/immigration/${section}?force=true` : `${base}/api/immigration/${section}`;
+      const url = force ? `${API_BASE_URL}/api/immigration/${section}?force=true` : `${API_BASE_URL}/api/immigration/${section}`;
       // Never let a slow upstream hang the UI — force refresh awaits a live fetch (~7s server cap).
       const res = await axios.get(url, { timeout: force ? 15000 : 12000 });
       setData(d => ({ ...d, [section]: res.data }));

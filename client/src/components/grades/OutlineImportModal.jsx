@@ -4,6 +4,7 @@ import Modal from '../ui/Modal.jsx';
 import axios from 'axios';
 import { useApp } from '../../context/AppContext.jsx';
 import { supabase } from '../../lib/supabase.js';
+import { API_BASE_URL } from '../../lib/apiBase.js';
 
 export default function OutlineImportModal({ isOpen, onClose }) {
   const { importFromOutline, activeSemester } = useApp();
@@ -33,7 +34,7 @@ export default function OutlineImportModal({ isOpen, onClose }) {
       if (activeSemester?.name) formData.append('semesterName', activeSemester.name);
       if (activeSemester?.startDate) formData.append('semesterStart', activeSemester.startDate);
       if (activeSemester?.endDate) formData.append('semesterEnd', activeSemester.endDate);
-      const res = await axios.post(`${import.meta.env.VITE_API_URL ?? ''}/api/parse-outline`, formData, {
+      const res = await axios.post(`${API_BASE_URL}/api/parse-outline`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           Authorization: `Bearer ${session.access_token}`,
