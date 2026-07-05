@@ -9,52 +9,66 @@ import EmptyState from '../components/ui/EmptyState.jsx';
 import Modal from '../components/ui/Modal.jsx';
 import { useApp } from '../context/AppContext.jsx';
 import { calcCourseGrade } from '../utils/gradeCalculations.js';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { getGradeInfo } from '../data/gpaScales.js';
 import { calcSemesterGPA } from '../utils/gradeCalculations.js';
+import { useToast } from '../components/ui/Toast.jsx';
 
 export default function Grades() {
   const { activeCourses, activeSemester, settings } = useApp();
+  const toast = useToast();
   const [courseModal, setCourseModal] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
   const [outlineModal, setOutlineModal] = useState(false);
   const [gpaModal, setGpaModal] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
-  const exportPDF = () => {
-    const doc = new jsPDF();
-    doc.setFontSize(18);
-    doc.text('ultraGrade Transcript', 14, 20);
-    doc.setFontSize(11);
-    doc.setTextColor(100);
-    doc.text(`Semester: ${activeSemester?.name || 'N/A'}`, 14, 30);
-    doc.text(`School: ${settings.school || 'N/A'}`, 14, 37);
-    doc.text(`Date: ${new Date().toLocaleDateString('en-CA')}`, 14, 44);
+  const exportPDF = async () => {
+    setExporting(true);
+    try {
+      // jspdf + autotable are heavy and only needed on demand — load them lazily
+      // so they stay out of the main bundle.
+      const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+        import('jspdf'),
+        import('jspdf-autotable'),
+      ]);
+      const doc = new jsPDF();
+      doc.setFontSize(18);
+      doc.text('ultraGrade Transcript', 14, 20);
+      doc.setFontSize(11);
+      doc.setTextColor(100);
+      doc.text(`Semester: ${activeSemester?.name || 'N/A'}`, 14, 30);
+      doc.text(`School: ${settings.school || 'N/A'}`, 14, 37);
+      doc.text(`Date: ${new Date().toLocaleDateString('en-CA')}`, 14, 44);
 
-    const rows = activeCourses.map(c => {
-      const { running } = calcCourseGrade(c);
-      const pct = c.finalGradeOverride ?? running;
-      const info = pct !== null ? getGradeInfo(pct, settings.gpaScale) : null;
-      return [c.code, c.name, c.creditHours, pct !== null ? `${pct.toFixed(1)}%` : '—', info?.letter || '—', info?.points?.toFixed(1) || '—'];
-    });
+      const rows = activeCourses.map(c => {
+        const { running } = calcCourseGrade(c);
+        const pct = c.finalGradeOverride ?? running;
+        const info = pct !== null ? getGradeInfo(pct, settings.gpaScale) : null;
+        return [c.code, c.name, c.creditHours, pct !== null ? `${pct.toFixed(1)}%` : '—', info?.letter || '—', info?.points?.toFixed(1) || '—'];
+      });
 
-    autoTable(doc, {
-      startY: 52,
-      head: [['Code', 'Course Name', 'Credits', 'Grade %', 'Letter', 'GPA Pts']],
-      body: rows,
-      theme: 'striped',
-      headStyles: { fillColor: [15, 157, 88] }
-    });
+      autoTable(doc, {
+        startY: 52,
+        head: [['Code', 'Course Name', 'Credits', 'Grade %', 'Letter', 'GPA Pts']],
+        body: rows,
+        theme: 'striped',
+        headStyles: { fillColor: [15, 157, 88] }
+      });
 
-    const gpa = calcSemesterGPA(activeCourses, settings.gpaScale);
-    if (gpa !== null) {
-      const finalY = doc.lastAutoTable.finalY + 10;
-      doc.setFontSize(12);
-      doc.setTextColor(0);
-      doc.text(`Semester GPA: ${gpa.toFixed(2)}`, 14, finalY);
+      const gpa = calcSemesterGPA(activeCourses, settings.gpaScale);
+      if (gpa !== null) {
+        const finalY = doc.lastAutoTable.finalY + 10;
+        doc.setFontSize(12);
+        doc.setTextColor(0);
+        doc.text(`Semester GPA: ${gpa.toFixed(2)}`, 14, finalY);
+      }
+
+      doc.save(`ultraGrade_${activeSemester?.name || 'transcript'}.pdf`);
+    } catch (err) {
+      toast.error('Could not generate the PDF. Please try again.');
+    } finally {
+      setExporting(false);
     }
-
-    doc.save(`ultraGrade_${activeSemester?.name || 'transcript'}.pdf`);
   };
 
   return (
@@ -64,8 +78,8 @@ export default function Grades() {
         actions={
           <div className="flex gap-2">
             <button onClick={() => setGpaModal(true)} className="btn btn-sm btn-ghost">GPA Summary</button>
-            <button onClick={exportPDF} className="btn btn-sm btn-ghost hidden md:flex gap-1">
-              <Download size={14} /> Export PDF
+            <button onClick={exportPDF} disabled={exporting} className="btn btn-sm btn-ghost hidden md:flex gap-1">
+              <Download size={14} /> {exporting ? 'Exporting…' : 'Export PDF'}
             </button>
             <button onClick={() => { setEditingCourse(null); setCourseModal(true); }} className="btn btn-sm btn-primary gap-1">
               <Plus size={14} /> Course
