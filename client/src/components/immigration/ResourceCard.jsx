@@ -6,11 +6,11 @@ export default function ResourceCard({ title, description, url, icon: Icon, badg
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="card bg-base-200 hover:bg-base-300 transition-colors shadow-sm cursor-pointer group"
+      className="glass-card glass-hover cursor-pointer group"
     >
-      <div className="card-body p-4 flex-row items-start gap-3">
+      <div className="p-4 flex flex-row items-start gap-3">
         {Icon && (
-          <div className="p-2 bg-primary/10 rounded-lg flex-shrink-0">
+          <div className="p-2 bg-primary/12 border border-primary/20 rounded-xl flex-shrink-0 transition-transform duration-300 group-hover:scale-105">
             <Icon size={20} className="text-primary" />
           </div>
         )}

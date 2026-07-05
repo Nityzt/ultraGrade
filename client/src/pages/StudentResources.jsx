@@ -1,4 +1,5 @@
 import ResourceCard from '../components/immigration/ResourceCard';
+import PageHeader from '../components/ui/PageHeader';
 import { DollarSign, GraduationCap, Heart, Users, BookOpen, Briefcase } from 'lucide-react';
 
 const RESOURCES = [
@@ -42,24 +43,27 @@ const RESOURCES = [
 
 export default function StudentResources() {
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-3xl">
-      <div>
-        <h1 className="text-2xl font-bold mb-1">Student Resources</h1>
-        <p className="text-base-content/60 text-sm">Helpful links and resources for domestic students in Ontario.</p>
-      </div>
+    <div className="p-4 md:p-6 space-y-6">
+      <PageHeader
+        title="Student Resources"
+        icon={BookOpen}
+        subtitle="Helpful links and resources for domestic students in Ontario."
+      />
 
-      {RESOURCES.map(({ category, icon: Icon, links }) => (
-        <div key={category} className="space-y-3">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Icon size={18} className="text-primary" /> {category}
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {links.map(link => (
-              <ResourceCard key={link.url} {...link} />
-            ))}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {RESOURCES.map(({ category, icon: Icon, links }) => (
+          <div key={category} className="space-y-3">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <Icon size={18} className="text-primary" /> {category}
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {links.map(link => (
+                <ResourceCard key={link.url} {...link} />
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }

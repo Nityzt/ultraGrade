@@ -62,14 +62,14 @@ function ContentRenderer({ text }) {
   );
 }
 
-export default function InfoSection({ title, data, onRefresh, loading, icon: Icon }) {
-  const [open, setOpen] = useState(true);
+export default function InfoSection({ title, data, onRefresh, loading, icon: Icon, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <div className="card bg-base-200 border border-base-300 shadow-sm overflow-hidden">
+    <div className="glass-card overflow-hidden">
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-4 py-3 hover:bg-base-300/60 transition-colors text-left"
+        className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-base-content/5 transition-colors text-left"
       >
         <div className="flex items-center gap-3">
           {Icon && (

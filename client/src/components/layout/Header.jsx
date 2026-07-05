@@ -6,8 +6,10 @@ export default function Header({ title, actions }) {
   const isDark = settings.theme === 'ultragrade-dark';
 
   return (
-    <header className="flex items-center justify-between px-4 md:px-6 py-4 bg-base-100 sticky top-0 z-30 no-print shadow-sm shadow-base-300/30">
-      <h1 className="text-xl font-bold text-base-content tracking-tight">{title}</h1>
+    <header className="flex items-center justify-between px-4 md:px-6 py-4 bg-base-100/70 backdrop-blur-xl border-b border-base-300/50 sticky top-0 z-30 no-print">
+      <h1 className="text-xl md:text-2xl font-display font-bold text-base-content tracking-tight">
+        {title}<span className="text-primary">.</span>
+      </h1>
       <div className="flex items-center gap-2">
         {actions}
         <button
