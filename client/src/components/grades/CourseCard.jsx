@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Pencil, Trash2, Plus, ExternalLink, ChevronDown, ChevronUp, Target, Timer, FileText } from 'lucide-react';
 import ProgressRing from '../ui/ProgressRing.jsx';
@@ -19,25 +19,70 @@ function gradeProgressColor(pct) {
   return 'var(--grade-red, #f87171)';
 }
 
+/** Inline category quick-add — name + weight, Enter to save. Modal stays for advanced options (drop-lowest). */
+function QuickAddCategory({ courseId, onClose }) {
+  const { addCategory } = useApp();
+  const [name, setName] = useState('');
+  const [weight, setWeight] = useState('');
+  const nameRef = useRef(null);
+
+  const submit = () => {
+    const w = parseFloat(weight);
+    if (!name.trim() || isNaN(w)) { nameRef.current?.focus(); return; }
+    addCategory(courseId, { name: name.trim(), weight: w });
+    setName('');
+    setWeight('');
+    nameRef.current?.focus();
+  };
+  const onKeyDown = (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); submit(); }
+    if (e.key === 'Escape') onClose();
+  };
+
+  return (
+    <div className="flex items-center gap-1.5 p-2 rounded-2xl border border-base-300 bg-base-300/20">
+      <input
+        ref={nameRef} autoFocus value={name}
+        onChange={e => setName(e.target.value)} onKeyDown={onKeyDown}
+        placeholder="Category (e.g. Assignments)"
+        className="input input-xs input-bordered rounded-lg flex-1 min-w-0 text-xs"
+        aria-label="Category name"
+      />
+      <input
+        value={weight}
+        onChange={e => setWeight(e.target.value)} onKeyDown={onKeyDown}
+        type="number" step="0.01" placeholder="Weight"
+        className="input input-xs input-bordered rounded-lg w-16 text-xs font-mono"
+        aria-label="Weight percent"
+      />
+      <span className="text-base-content/40 text-xs">%</span>
+      <button onClick={submit} className="btn btn-xs btn-primary btn-circle shrink-0" aria-label="Add category">
+        <Plus size={13} />
+      </button>
+    </div>
+  );
+}
+
 export default function CourseCard({ course, onEdit }) {
-  const { deleteCourse, settings, updateCourse } = useApp();
+  const { deleteCourse, deleteCategory, settings, updateCourse } = useApp();
   const calc = useGradeCalc(course);
   const [catModal, setCatModal] = useState(false);
   const [editingCat, setEditingCat] = useState(null);
+  const [addingCat, setAddingCat] = useState(false);
   const [needModal, setNeedModal] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
   const [timerOpen, setTimerOpen] = useState(false);
 
   const rmpProfUrl = getRmpUrl(course.professor, settings.school);
-  const rmpCourseUrl = getCourseRmpUrl(course.code);
+  const rmpCourseUrl = getCourseRmpUrl(course.code, settings.school);
   const progressColor = gradeProgressColor(calc?.displayGrade ?? null);
 
   return (
     <motion.div
-      whileHover={{ y: -2 }}
-      className="card bg-base-200 border border-base-300 overflow-hidden"
-      style={{ borderLeftColor: course.color, borderLeftWidth: '3px', backgroundColor: `${course.color}05` }}
+      layout
+      className="glass-card glass-hover overflow-hidden"
+      style={{ borderLeftColor: course.color, borderLeftWidth: '3px' }}
     >
       <div className="card-body p-4 gap-3">
         {/* Header row */}
@@ -117,9 +162,12 @@ export default function CourseCard({ course, onEdit }) {
               category={cat}
               courseId={course.id}
               onEdit={() => { setEditingCat(cat); setCatModal(true); }}
-              onDelete={() => {}}
+              onDelete={() => deleteCategory(course.id, cat.id)}
             />
           ))}
+          {addingCat && (
+            <QuickAddCategory courseId={course.id} onClose={() => setAddingCat(false)} />
+          )}
         </div>
 
         {/* Notes area */}
@@ -158,7 +206,7 @@ export default function CourseCard({ course, onEdit }) {
 
         {/* Action buttons */}
         <div className="flex items-center gap-1.5 pt-2 border-t border-base-300/40">
-          <button onClick={() => setCatModal(true)} className="btn btn-xs btn-ghost gap-1 rounded-full">
+          <button onClick={() => setAddingCat(a => !a)} className={`btn btn-xs btn-ghost gap-1 rounded-full ${addingCat ? 'text-primary' : ''}`}>
             <Plus size={11} /> Category
           </button>
           <button onClick={() => setNeedModal(true)} className="btn btn-xs btn-ghost gap-1 rounded-full">

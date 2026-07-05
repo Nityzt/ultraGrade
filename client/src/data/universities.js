@@ -18,17 +18,25 @@ export const ONTARIO_UNIVERSITIES = [
   { name: 'Other', rmpId: null, defaultGpaScale: 'standard-4.0' },
 ];
 
+const RMP_BASE = 'https://www.ratemyprofessors.com/search/professors';
+
+/**
+ * Rate My Professors search URL for a professor.
+ * When we know the school, we scope the search to that campus (RMP's
+ * `/professors/{schoolId}?q=` form) so a common name resolves to the right
+ * person instead of a national list of namesakes.
+ */
 export function getRmpUrl(professorName, schoolName) {
   const uni = ONTARIO_UNIVERSITIES.find(u => u.name === schoolName);
-  const encoded = encodeURIComponent(professorName);
-  // if (uni?.rmpId) {
-  //   return `https://www.ratemyprofessors.com/search/professors?q=${encoded}&sid=${uni.rmpId}`;
-  // }
-  return `https://www.ratemyprofessors.com/search/professors?q=${encoded}`;
+  const q = encodeURIComponent((professorName || '').trim());
+  return uni?.rmpId ? `${RMP_BASE}/${uni.rmpId}?q=${q}` : `${RMP_BASE}?q=${q}`;
 }
 
-export function getCourseRmpUrl(courseCode) {
-  return `https://www.ratemyprofessors.com/search/professors?q=${encodeURIComponent(courseCode)}`;
+/** "Other professors" for a course — also scoped to the school when known. */
+export function getCourseRmpUrl(courseCode, schoolName) {
+  const uni = ONTARIO_UNIVERSITIES.find(u => u.name === schoolName);
+  const q = encodeURIComponent((courseCode || '').trim());
+  return uni?.rmpId ? `${RMP_BASE}/${uni.rmpId}?q=${q}` : `${RMP_BASE}?q=${q}`;
 }
 
 export function getDefaultGpaScale(schoolName) {

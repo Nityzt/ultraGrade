@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { ChevronDown, ChevronRight, Plus, Pencil, Trash2 } from 'lucide-react';
 import GradeEntryRow from './GradeEntryRow.jsx';
 import AddGradeModal from './AddGradeModal.jsx';
@@ -12,6 +12,70 @@ function gradeBarColor(pct) {
   return 'var(--grade-red, #f87171)';
 }
 
+/** Inline quick-add — type a score and press Enter. No modal for the common case. */
+function QuickAddGrade({ courseId, categoryId, gradeCount }) {
+  const { addGrade } = useApp();
+  const [label, setLabel] = useState('');
+  const [score, setScore] = useState('');
+  const [max, setMax] = useState('100');
+  const scoreRef = useRef(null);
+
+  const submit = () => {
+    const s = parseFloat(score);
+    const m = parseFloat(max);
+    if (isNaN(s) || isNaN(m) || m <= 0) { scoreRef.current?.focus(); return; }
+    addGrade(courseId, categoryId, {
+      label: label.trim() || `Grade ${gradeCount + 1}`,
+      score: s,
+      maxScore: m,
+    });
+    setLabel('');
+    setScore('');
+    setMax('100');
+    scoreRef.current?.focus(); // stay put for rapid entry
+  };
+
+  const onKeyDown = (e) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } };
+
+  return (
+    <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-base-300/40">
+      <input
+        value={label}
+        onChange={e => setLabel(e.target.value)}
+        onKeyDown={onKeyDown}
+        placeholder={`Grade ${gradeCount + 1}`}
+        className="input input-xs input-bordered rounded-lg flex-1 min-w-0 text-xs"
+        aria-label="Grade label"
+      />
+      <input
+        ref={scoreRef}
+        value={score}
+        onChange={e => setScore(e.target.value)}
+        onKeyDown={onKeyDown}
+        type="number" step="0.01" placeholder="Score"
+        className="input input-xs input-bordered rounded-lg w-16 text-xs font-mono"
+        aria-label="Score"
+      />
+      <span className="text-base-content/40 text-xs">/</span>
+      <input
+        value={max}
+        onChange={e => setMax(e.target.value)}
+        onKeyDown={onKeyDown}
+        type="number" step="0.01" placeholder="Max"
+        className="input input-xs input-bordered rounded-lg w-16 text-xs font-mono"
+        aria-label="Out of"
+      />
+      <button
+        onClick={submit}
+        className="btn btn-xs btn-primary btn-circle shrink-0"
+        aria-label="Add grade"
+      >
+        <Plus size={13} />
+      </button>
+    </div>
+  );
+}
+
 export default function CategoryRow({ category, courseId, onEdit, onDelete }) {
   const [expanded, setExpanded] = useState(false);
   const [gradeModal, setGradeModal] = useState(false);
@@ -20,6 +84,7 @@ export default function CategoryRow({ category, courseId, onEdit, onDelete }) {
 
   const earned = calcCategoryGrade(category);
   const colorClass = gradeColorClass(earned);
+  const grades = category.grades || [];
 
   return (
     <div className="border border-base-300 rounded-2xl overflow-hidden">
@@ -48,8 +113,9 @@ export default function CategoryRow({ category, courseId, onEdit, onDelete }) {
             <span className={`font-mono text-sm font-semibold ${colorClass}`}>{earned.toFixed(1)}%</span>
           )}
           <button
-            onClick={() => { setEditingGrade(null); setGradeModal(true); }}
+            onClick={() => setExpanded(true)}
             className="btn btn-ghost btn-xs gap-1 rounded-full"
+            title="Add a grade"
           >
             <Plus size={11} /> Grade
           </button>
@@ -68,15 +134,15 @@ export default function CategoryRow({ category, courseId, onEdit, onDelete }) {
         </div>
       )}
 
-      {/* Grade entries */}
+      {/* Grade entries + inline quick-add */}
       {expanded && (
         <div className="px-3 py-2 bg-base-300/10">
-          {(category.grades || []).length === 0 ? (
-            <p className="text-xs text-base-content/40 py-3 text-center">
-              No grades yet — add your first above.
+          {grades.length === 0 ? (
+            <p className="text-xs text-base-content/40 pt-2 text-center">
+              No grades yet — add one below.
             </p>
           ) : (
-            (category.grades || []).map(grade => (
+            grades.map(grade => (
               <GradeEntryRow
                 key={grade.id}
                 grade={grade}
@@ -85,6 +151,7 @@ export default function CategoryRow({ category, courseId, onEdit, onDelete }) {
               />
             ))
           )}
+          <QuickAddGrade courseId={courseId} categoryId={category.id} gradeCount={grades.length} />
         </div>
       )}
 
