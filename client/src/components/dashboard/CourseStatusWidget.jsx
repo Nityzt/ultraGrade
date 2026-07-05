@@ -24,7 +24,11 @@ export default function CourseStatusWidget() {
             const { running, assessedWeight } = calcCourseGrade(course);
             const graded = running != null;
             return (
-              <div key={course.id} className="flex flex-col gap-2">
+              <Link
+                key={course.id}
+                to="/grades"
+                className="flex flex-col gap-2 group rounded-xl -m-1 p-1 transition-colors hover:bg-base-content/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              >
                 <div className="flex items-end justify-between gap-2">
                   <div className="min-w-0">
                     <div className="text-sm font-semibold text-base-content truncate">{course.code}</div>
@@ -47,7 +51,7 @@ export default function CourseStatusWidget() {
                 <div className="text-[10px] text-base-content/35">
                   {graded ? `${assessedWeight}% of grade assessed` : 'Not graded yet'}
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>
