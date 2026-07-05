@@ -80,8 +80,11 @@ While waiting for your health card:
   }
 };
 
-const cache = new Map();
-const TTL_MS = 24 * 60 * 60 * 1000;
+const cache = new Map();            // section → { data, at, ttl }
+const inFlight = new Map();          // section → Promise (dedupes background revalidation)
+const TTL_MS = 24 * 60 * 60 * 1000; // live content is good for a day
+const NEG_TTL_MS = 10 * 60 * 1000;  // after a failed/thin fetch, serve fallback for 10 min before retrying
+const UPSTREAM_TIMEOUT = 7000;      // some gov hosts hang; fail fast rather than stall the request
 
 const NOISE_LINES = new Set([
   'image', 'on this page', 'skip this page navigation',
@@ -156,49 +159,85 @@ function extractMainContent(html) {
 
 const MIN_USEFUL_LENGTH = 400;
 
-export async function fetchSection(section) {
-  const config = SECTIONS[section];
-  if (!config) throw new Error(`Unknown section: ${section}`);
+function fallbackResult(config) {
+  return {
+    title: config.title,
+    content: config.fallback,
+    sourceUrl: config.url,
+    fetchedAt: new Date().toISOString(),
+    fromFallback: true,
+    fromCache: false,
+  };
+}
 
-  const cached = cache.get(section);
-  if (cached && Date.now() - cached.fetchedAt < TTL_MS) {
-    return { ...cached, fromCache: true };
-  }
-
+/** Hit the upstream page, extract usable content, and cache the outcome. */
+async function revalidate(section, config) {
   try {
     const response = await axios.get(config.url, {
-      timeout: 10000,
+      timeout: UPSTREAM_TIMEOUT,
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; ultraGrade/1.0; educational use)',
         'Accept': 'text/html,application/xhtml+xml',
-        'Accept-Language': 'en-CA,en;q=0.9'
-      }
+        'Accept-Language': 'en-CA,en;q=0.9',
+      },
     });
 
     const liveContent = extractMainContent(response.data);
-    const useLive = config.preferLive && liveContent.length >= MIN_USEFUL_LENGTH;
-
+    const useLive = liveContent.length >= MIN_USEFUL_LENGTH;
     const result = {
       title: config.title,
       content: useLive ? liveContent : config.fallback,
       sourceUrl: config.url,
       fetchedAt: new Date().toISOString(),
-      fromFallback: !useLive
+      fromFallback: !useLive,
     };
-
-    cache.set(section, { ...result, fetchedAt: Date.now() });
+    cache.set(section, { data: result, at: Date.now(), ttl: useLive ? TTL_MS : NEG_TTL_MS });
     return { ...result, fromCache: false };
   } catch (err) {
     console.warn(`Failed to fetch ${section}:`, err.message);
-    return {
-      title: config.title,
-      content: config.fallback,
-      sourceUrl: config.url,
-      fetchedAt: new Date().toISOString(),
-      fromFallback: true,
-      fromCache: false
-    };
+    const result = fallbackResult(config);
+    // Negative-cache so a dead host isn't hammered on every page load.
+    cache.set(section, { data: result, at: Date.now(), ttl: NEG_TTL_MS });
+    return result;
   }
+}
+
+/** Fire the revalidation once and share the promise across concurrent callers. */
+function revalidateInBackground(section, config) {
+  if (inFlight.has(section)) return;
+  const p = revalidate(section, config)
+    .catch(() => {})
+    .finally(() => inFlight.delete(section));
+  inFlight.set(section, p);
+}
+
+/**
+ * Return immigration content for a section — designed to never block the user
+ * on a slow or unreachable government host.
+ *
+ * - Sections that always use curated fallback (`preferLive: false`) skip the
+ *   network entirely and return instantly.
+ * - `force` (the explicit Refresh button) awaits a live fetch.
+ * - Otherwise: serve fresh cache, or serve fallback/stale immediately and warm
+ *   the cache in the background so the next visit can upgrade to live content.
+ */
+export async function fetchSection(section, { force = false } = {}) {
+  const config = SECTIONS[section];
+  if (!config) throw new Error(`Unknown section: ${section}`);
+
+  if (!config.preferLive) return fallbackResult(config);
+
+  if (force) {
+    inFlight.delete(section);
+    return revalidate(section, config);
+  }
+
+  const cached = cache.get(section);
+  const fresh = cached && Date.now() - cached.at < cached.ttl;
+  if (fresh) return { ...cached.data, fromCache: true };
+
+  revalidateInBackground(section, config);
+  return cached ? { ...cached.data, fromCache: true } : fallbackResult(config);
 }
 
 export function clearCache(section) {

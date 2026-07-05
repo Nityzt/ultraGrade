@@ -1,5 +1,5 @@
 import express from 'express';
-import { fetchSection, clearCache } from '../utils/immigrationFetcher.js';
+import { fetchSection } from '../utils/immigrationFetcher.js';
 
 const router = express.Router();
 
@@ -11,8 +11,7 @@ router.get('/:section', async (req, res) => {
     return res.status(400).json({ success: false, error: 'Unknown section' });
   }
   try {
-    if (force) clearCache(section);
-    const data = await fetchSection(section);
+    const data = await fetchSection(section, { force });
     res.json({ success: true, ...data });
   } catch (err) {
     console.error('Immigration fetch error:', err);

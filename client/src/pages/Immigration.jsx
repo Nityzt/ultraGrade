@@ -4,7 +4,8 @@ import axios from 'axios';
 import InfoSection from '../components/immigration/InfoSection';
 import WorkRightsTable from '../components/immigration/WorkRightsTable';
 import ResourceCard from '../components/immigration/ResourceCard';
-import { Shield, Briefcase, Award, Heart, BookOpen, ExternalLink, AlertTriangle } from 'lucide-react';
+import PageHeader from '../components/ui/PageHeader';
+import { Shield, Briefcase, Award, Heart, BookOpen, ExternalLink, AlertTriangle, Globe } from 'lucide-react';
 
 const SECTIONS = [
   { key: 'study-permit', title: 'Study Permit', icon: Shield },
@@ -29,7 +30,8 @@ function useImmigrationData() {
     try {
       const base = import.meta.env.VITE_API_URL ?? '';
       const url = force ? `${base}/api/immigration/${section}?force=true` : `${base}/api/immigration/${section}`;
-      const res = await axios.get(url);
+      // Never let a slow upstream hang the UI — force refresh awaits a live fetch (~7s server cap).
+      const res = await axios.get(url, { timeout: force ? 15000 : 12000 });
       setData(d => ({ ...d, [section]: res.data }));
     } catch (err) {
       setData(d => ({
@@ -57,11 +59,12 @@ export default function Immigration() {
   }, [fetchAll]);
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-3xl">
-      <div>
-        <h1 className="text-2xl font-bold mb-1">Immigration Hub</h1>
-        <p className="text-base-content/60 text-sm">Information for international students studying in Ontario on a study permit.</p>
-      </div>
+    <div className="p-4 md:p-6 space-y-6">
+      <PageHeader
+        title="Immigration Hub"
+        icon={Globe}
+        subtitle="Information for international students studying in Ontario on a study permit."
+      />
 
       {/* Disclaimer */}
       <div className="alert alert-warning shadow-sm text-sm">
@@ -83,35 +86,39 @@ export default function Immigration() {
         </div>
       )}
 
-      {/* Work rights table */}
-      <div className="space-y-3">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <Briefcase size={18} className="text-primary" /> Work Rights at a Glance
-        </h2>
-        <WorkRightsTable />
+      {/* Work rights + Quick links, side by side; columns align to top independently so uneven content never leaves a stretched blank gap */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <Briefcase size={18} className="text-primary" /> Work Rights at a Glance
+          </h2>
+          <WorkRightsTable />
+        </div>
+
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold">Quick Links</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {QUICK_LINKS.map(link => (
+              <ResourceCard key={link.url} {...link} />
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* Live sections */}
+      {/* Official info, full width below; collapsed by default so the page opens compact and scannable */}
       <div className="space-y-3">
         <h2 className="text-lg font-semibold">Official Information (Live)</h2>
-        {SECTIONS.map(({ key, title, icon }) => (
-          <InfoSection
-            key={key}
-            title={title}
-            icon={icon}
-            data={data[key]}
-            loading={loading[key]}
-            onRefresh={() => fetchSection(key, true)}
-          />
-        ))}
-      </div>
-
-      {/* Quick links */}
-      <div className="space-y-3">
-        <h2 className="text-lg font-semibold">Quick Links</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {QUICK_LINKS.map(link => (
-            <ResourceCard key={link.url} {...link} />
+        <div className="space-y-3">
+          {SECTIONS.map(({ key, title, icon }, i) => (
+            <InfoSection
+              key={key}
+              title={title}
+              icon={icon}
+              data={data[key]}
+              loading={loading[key]}
+              onRefresh={() => fetchSection(key, true)}
+              defaultOpen={i === 0}
+            />
           ))}
         </div>
       </div>
