@@ -89,12 +89,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // Gemini's flash tier throws transient 503 "high demand" / UNAVAILABLE spikes.
 // Retry those a couple of times with backoff; never retry quota (429) — it
 // won't clear in seconds and we surface a clearer message for it upstream.
-function isTransient(err) {
+export function isTransient(err) {
   const m = (err?.message || '').toLowerCase();
   return m.includes('503') || m.includes('unavailable') || m.includes('overloaded') || m.includes('high demand');
 }
 
-async function generateWithRetry(model, request, attempts = 3) {
+export async function generateWithRetry(model, request, attempts = 3) {
   let lastErr;
   for (let i = 0; i < attempts; i++) {
     try {
