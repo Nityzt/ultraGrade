@@ -88,6 +88,7 @@ export default defineConfig({
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           'vendor-supabase': ['@supabase/supabase-js'],
           'vendor-motion': ['framer-motion'],
+          'vendor-ui': ['sonner', 'cmdk', '@number-flow/react', '@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
         }
       }
     }
