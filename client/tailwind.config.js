@@ -15,13 +15,20 @@ export default {
         'sage-deep': '#0f9d58',
         sand: '#f7bb7e',
         ruby: '#ffb4ab',
-        obsidian: '#0d1117'
+        obsidian: '#0d1117',
+        // Kinetic Moss (Classic) accents — electric lime + spring green on dark moss.
+        lime: '#c3f400',
+        'lime-soft': '#d9f99d',
+        spring: '#4ae176',
+        moss: '#0b1511'
       },
       boxShadow: {
         glass: '0 8px 32px rgba(0, 0, 0, 0.40)',
         ambient: '0 10px 30px rgba(0, 0, 0, 0.06)',
         'ambient-lg': '0 20px 45px rgba(0, 0, 0, 0.10)',
-        bloom: '0 0 18px rgba(181, 205, 183, 0.35)'
+        // bloom is a per-theme glow — the CSS var --bloom-color lets each theme
+        // recolor the primary glow (sage / lime / emerald) without new utilities.
+        bloom: '0 0 18px var(--bloom-color, rgba(181, 205, 183, 0.35))'
       },
       keyframes: {
         'fade-up': {
@@ -31,11 +38,18 @@ export default {
         'pulse-soft': {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.45' }
+        },
+        // Same fade-up shape, but the easing overshoots past 100% before settling —
+        // a light spring "pop" rather than a plain glide. Used for staggered entrances.
+        'pop-in': {
+          '0%': { opacity: '0', transform: 'translateY(12px) scale(0.96)' },
+          '100%': { opacity: '1', transform: 'translateY(0) scale(1)' }
         }
       },
       animation: {
         'fade-up': 'fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both',
-        'pulse-soft': 'pulse-soft 2.4s ease-in-out infinite'
+        'pulse-soft': 'pulse-soft 2.4s ease-in-out infinite',
+        'pop-in': 'pop-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both'
       }
     }
   },
@@ -43,22 +57,23 @@ export default {
   daisyui: {
     themes: [
       {
-        // Obsidian + sage — the default signature theme
-        'ultragrade-dark': {
-          primary: '#b5cdb7',
-          'primary-focus': '#a0bda3',
-          'primary-content': '#16281a',
-          secondary: '#f7bb7e',
-          'secondary-content': '#2c1600',
-          accent: '#d1e9d2',
-          'accent-content': '#16281a',
-          neutral: '#1c2026',
-          'base-100': '#0d1117',
-          'base-200': '#161b22',
-          'base-300': '#262a31',
-          'base-content': '#dfe2eb',
+        // Kinetic Moss — the flagship "Classic" brand identity. Electric lime on
+        // deep moss; energetic, alive. This is the default for new users.
+        'ultragrade-classic': {
+          primary: '#c3f400',
+          'primary-focus': '#abd600',
+          'primary-content': '#161e00',
+          secondary: '#4ae176',
+          'secondary-content': '#002109',
+          accent: '#d9f99d',
+          'accent-content': '#161e00',
+          neutral: '#18221c',
+          'base-100': '#0b1511',
+          'base-200': '#141e19',
+          'base-300': '#222c27',
+          'base-content': '#dae5dd',
           info: '#7fb4d6',
-          success: '#7ee0a3',
+          success: '#4ae176',
           warning: '#f7bb7e',
           error: '#ffb4ab'
         }
@@ -85,6 +100,6 @@ export default {
         }
       }
     ],
-    defaultTheme: 'ultragrade-dark'
+    defaultTheme: 'ultragrade-classic'
   }
 }

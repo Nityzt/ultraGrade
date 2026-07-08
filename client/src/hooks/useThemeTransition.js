@@ -1,46 +1,134 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { Sparkles, Sun } from 'lucide-react';
 import { useApp } from '../context/AppContext.jsx';
 
-const DARK = 'ultragrade-dark';
+const CLASSIC = 'ultragrade-classic';
 const LIGHT = 'ultragrade-light';
-const DURATION = 550; // ms — the reveal sweep
-const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
+
+// Two coexisting themes. The toggle flips between them; Settings jumps directly.
+export const THEMES = [CLASSIC, LIGHT];
+export const THEME_META = {
+  [CLASSIC]: { label: 'Classic', hint: 'Electric lime', Icon: Sparkles },
+  [LIGHT]: { label: 'Light', hint: 'Emerald day', Icon: Sun },
+};
+
+const normalize = (t) => (THEMES.includes(t) ? t : CLASSIC);
+const nextInCycle = (t) => THEMES[(THEMES.indexOf(normalize(t)) + 1) % THEMES.length];
+
+const DURATION = 650;
+const EASE = 'cubic-bezier(0.33, 0, 0.15, 1)';
+// The toggle stays LOCKED (disabled, visibly dimmed) from sweep start until
+// COOLDOWN elapses — that's the rate limit. There is deliberately no queue:
+// a locked control that ignores input is honest UX; deferred catch-up sweeps
+// raced the settings persist and produced un-animated cross-fade commits.
+const COOLDOWN = DURATION + 350;
+
+// ── Module-level lock, shared by every mounted instance (Sidebar / Header /
+// Login / Settings) — only one document-level view transition can exist at a
+// time, so the lock must be global, and every toggle button must dim at once.
+let locked = false;
+let lockTimer = null;
+const subscribers = new Set();
+const setLocked = (v) => {
+  if (locked === v) return;
+  locked = v;
+  subscribers.forEach((fn) => fn());
+};
+const subscribe = (fn) => { subscribers.add(fn); return () => subscribers.delete(fn); };
+const getLocked = () => locked;
+
+let activeTransition = null;
+
+// Lets App.jsx's data-theme reconciler stay quiet while a sweep is composing —
+// a setAttribute from outside the transition callback mutates the live page
+// being revealed.
+export function isThemeSweepActive() {
+  return activeTransition !== null;
+}
+
+const setAttr = (t) => document.documentElement.setAttribute('data-theme', t);
 
 /**
- * Theme switching with a content-aware, chainable circular reveal.
+ * Content-aware circular reveal via the View Transitions API: the browser
+ * snapshots the page in the OLD theme, the NEW theme is applied underneath,
+ * and a hard circular clip on `::view-transition-new(root)` grows out of the
+ * click point — real content on both sides of the wavefront at all times.
  *
- * The browser snapshots the page in both themes (View Transitions API) and we
- * drive a growing circular clip on the *new* snapshot via WAAPI, so each element
- * repaints into the new theme as the wave passes over it — nothing is hidden.
- *
- * Chaining: a click during a reveal interrupts it (`skipTransition()`) and starts
- * a fresh wave from the new click point, so every click fires its own wave. A
- * `target` ref tracks the latest theme synchronously and the icon/label flip
- * instantly via `displayTheme`, so rapid toggles resolve to the correct final
- * theme with no `InvalidStateError`.
- *
- * Chrome collapses the captured page to the root snapshot for hit-testing during a
- * transition (a click over the toggle resolves to <html>, so its onClick never
- * fires), so we also delegate the toggle at the window level — see the effect.
+ * Stability rules — each earned by a real "Aw, Snap" (renderer error 5):
+ * 1. NEVER two snapshots in flight or closer than COOLDOWN apart. Enforced by
+ *    the lock: while a sweep runs (+ cooldown) every toggle is `disabled` and
+ *    `apply()` ignores calls outright. Snapshot storms are what froze the
+ *    renderer (>10 clicks/sec with interrupt-and-restart, and still with
+ *    chained coalesced sweeps).
+ * 2. The clip animation has NO `fill:'forwards'` and is explicitly cancelled
+ *    on finish — forwards-filled animations targeting
+ *    `::view-transition-new(root)` outlive their transition, re-attach to
+ *    every later transition's pseudo, and accumulate without bound.
+ * 3. `html.theme-switching` freezes the universal 150ms colour transition
+ *    during the swap — otherwise every themed element spawns its own
+ *    CSSTransition beneath the snapshot (thousands per sweep).
+ * 4. A hidden tab never starts or keeps a transition (paused rendering never
+ *    resolves ready/finished): instant swap on start, `skipTransition()` on
+ *    visibilitychange, DURATION+400ms watchdog as last resort.
  */
+function startSweep(next, x, y) {
+  const root = document.documentElement;
+  if (root.getAttribute('data-theme') === next) return;
+  if (document.hidden || typeof document.startViewTransition !== 'function') {
+    setAttr(next);
+    return;
+  }
+
+  setLocked(true);
+  clearTimeout(lockTimer);
+  lockTimer = setTimeout(() => setLocked(false), COOLDOWN);
+
+  const transition = document.startViewTransition(() => {
+    root.classList.add('theme-switching');
+    setAttr(next);
+  });
+  activeTransition = transition;
+
+  let clipAnim = null;
+  const forceFinish = () => { try { transition.skipTransition(); } catch { /* already done */ } };
+  const onVisibilityChange = () => { if (document.hidden) forceFinish(); };
+  document.addEventListener('visibilitychange', onVisibilityChange);
+  const watchdog = setTimeout(forceFinish, DURATION + 400);
+
+  const cleanup = () => {
+    clearTimeout(watchdog);
+    document.removeEventListener('visibilitychange', onVisibilityChange);
+    try { clipAnim && clipAnim.cancel(); } catch { /* already gone */ }
+    if (activeTransition === transition) activeTransition = null;
+    // Unfreeze one frame later so the committed colours are on screen before
+    // per-element transitions come back.
+    setTimeout(() => root.classList.remove('theme-switching'), 30);
+  };
+  transition.finished.then(cleanup, cleanup);
+
+  transition.ready.then(() => {
+    const r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y)) + 2;
+    clipAnim = root.animate(
+      { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
+      // No `fill: 'forwards'` — see rule 2. When the clip finishes, the
+      // unclipped pseudo shows the identical fully-revealed frame.
+      { duration: DURATION, easing: EASE, pseudoElement: '::view-transition-new(root)' },
+    );
+  }).catch(() => {
+    // skipped before it was ready — data-theme is already applied
+  });
+}
+
 export function useThemeTransition() {
   const { settings, updateSettings } = useApp();
-  const theme = settings.theme || DARK;
+  const theme = normalize(settings.theme);
 
-  // Icon/label reflect the target the instant you click (optimistic).
+  // All mounted toggles share the lock — every button dims together.
+  const busy = useSyncExternalStore(subscribe, getLocked, getLocked);
+
   const [displayTheme, setDisplayTheme] = useState(theme);
   useEffect(() => { setDisplayTheme(theme); }, [theme]);
 
-  const target = useRef(null); // desired final theme, set synchronously per click
-  const origin = useRef({ x: null, y: null });
-  const busy = useRef(false);
-  const active = useRef(null); // in-flight ViewTransition, so we can interrupt it
-
-  const applied = () => document.documentElement.getAttribute('data-theme') || theme;
-
-  // Persist debounced + de-duped: rapid chaining coalesces to one write, and a
-  // chain that returns to its starting theme writes nothing — that stray re-render
-  // was the "repaint after the last wave".
   const lastPersisted = useRef(theme);
   useEffect(() => { lastPersisted.current = theme; }, [theme]);
   const persistTimer = useRef(null);
@@ -54,131 +142,62 @@ export function useThemeTransition() {
   };
   useEffect(() => () => clearTimeout(persistTimer.current), []);
 
-  const reveal = (next, x, y, done) => {
-    const root = document.documentElement;
-    const supported = typeof document.startViewTransition === 'function';
+  const apply = (next, event, { force = false } = {}) => {
+    // The toggle hard-drops while locked (its button is disabled anyway).
+    // Deliberate selections (Settings segmented control, onboarding picker)
+    // pass force: they must never be silently lost, so while locked they
+    // apply instantly instead of sweeping — never a second snapshot.
+    if (locked && !force) return;
+
+    const t = normalize(next);
+    setDisplayTheme(t); // icon/label flip on ACCEPTED changes only
+
+    persist(t);
+
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    const x = event && typeof event.clientX === 'number' ? event.clientX : null;
+    const y = event && typeof event.clientY === 'number' ? event.clientY : null;
 
-    if (!supported || reduce || x == null) {
-      root.setAttribute('data-theme', next);
-      done();
+    if (locked || reduce || x == null || typeof document.startViewTransition !== 'function') {
+      setAttr(t);
       return;
     }
-
-    // Idempotent — the class spans the whole chain (removed once, on settle, in
-    // step), so the colour-freeze recalc happens twice per chain, not per wave.
-    root.classList.add('theme-switching');
-    const endRadius = Math.hypot(
-      Math.max(x, window.innerWidth - x),
-      Math.max(y, window.innerHeight - y),
-    );
-
-    const transition = document.startViewTransition(() => {
-      root.setAttribute('data-theme', next);
-    });
-    active.current = transition;
-
-    transition.ready
-      .then(() => {
-        root.animate(
-          {
-            clipPath: [
-              `circle(0px at ${x}px ${y}px)`,
-              `circle(${endRadius}px at ${x}px ${y}px)`,
-            ],
-          },
-          { duration: DURATION, easing: EASE, pseudoElement: '::view-transition-new(root)', fill: 'backwards' },
-        );
-      })
-      .catch(() => {});
-
-    transition.finished
-      .catch(() => {})
-      .finally(() => {
-        if (active.current === transition) active.current = null;
-        done();
-      });
+    startSweep(t, x, y);
   };
 
-  const step = () => {
-    if (busy.current) return;
-    const next = target.current;
-    if (!next || next === applied()) {
-      // Chain settled: drop the sweep class and persist ONCE, with the final theme.
-      // Persisting per-wave instead fired a stale value mid-chain (debounce < chain
-      // length), which the App.jsx reconciler then wrote back — desyncing the DOM so
-      // the chain never settled (stuck class, flip-back repaint).
-      document.documentElement.classList.remove('theme-switching');
-      persist(applied());
-      return;
-    }
-    busy.current = true;
-    reveal(next, origin.current.x, origin.current.y, () => {
-      busy.current = false;
-      step(); // continue if the target moved again while animating
-    });
+  const toggle = (event) => {
+    const base = normalize(document.documentElement.getAttribute('data-theme'));
+    apply(nextInCycle(base), event);
   };
+  const setTheme = (next, event) => apply(next, event, { force: true });
 
-  const apply = (next, event) => {
-    target.current = next;
-    setDisplayTheme(next);
-    origin.current = {
-      x: event && typeof event.clientX === 'number' ? event.clientX : null,
-      y: event && typeof event.clientY === 'number' ? event.clientY : null,
-    };
-    // Interrupt the running wave so this click fires a fresh one from its point;
-    // otherwise start the first wave. step() then resolves to the latest target.
-    if (busy.current) active.current?.skipTransition?.();
-    else step();
-  };
-
-  const currentTarget = () => target.current ?? applied();
-  const toggle = (event) => apply(currentTarget() === DARK ? LIGHT : DARK, event);
-  const setTheme = (next, event) => apply(next, event);
-
-  // Props for the toggle button. Firing on **pointerdown** (not click) means a
-  // single physical click can never trigger two paths — the old onClick-based setup
-  // double-fired at the sweep boundary: a press during a wave was caught by the
-  // window delegation (interrupt), then the click that landed after the wave ended
-  // fired the button's onClick too (restart). Now an idle press hits the button's
-  // onPointerDown; a press during a sweep (hit-testing collapsed to <html>) is
-  // caught by the window delegation. The shared event's `__themeToggleHandled` flag
-  // dedupes the rare overlap. Keyboard uses onKeyDown, origin at the button centre.
+  // onClick fires for mouse, touch, and keyboard (Enter/Space) alike, and
+  // carries the click coordinates so the reveal blooms from the pointer.
+  // Keyboard-synthesised clicks report (0,0) → fall back to the button centre.
+  // While locked the button is `disabled` (visibly inactive, unclickable) —
+  // and even a click that sneaks through another path is ignored by apply().
   const toggleProps = {
-    onPointerDown: (e) => { if (e.button === 0 && !e.__themeToggleHandled) toggle(e); },
-    onKeyDown: (e) => {
-      if (e.key !== 'Enter' && e.key !== ' ') return;
-      e.preventDefault();
-      const r = e.currentTarget.getBoundingClientRect();
-      toggle({ clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 });
+    onClick: (e) => {
+      let x = e.clientX, y = e.clientY;
+      if (!x && !y) {
+        const r = e.currentTarget.getBoundingClientRect();
+        x = r.left + r.width / 2; y = r.top + r.height / 2;
+      }
+      toggle({ clientX: x, clientY: y });
     },
+    disabled: busy,
+    'aria-busy': busy || undefined,
     'data-theme-toggle': '',
   };
 
-  // Keep the toggle live mid-sweep. Hit-testing (clicks AND elementFromPoint)
-  // collapses to <html> during a transition, so the button's onClick never fires.
-  // The raw pointer event still reaches window and the button keeps a valid layout
-  // box, so we match the pointer against [data-theme-toggle]'s bounding rect
-  // (coordinate match, NOT hit-testing) and fire the toggle ourselves. Only while a
-  // transition runs — otherwise the button's native click handles it (no double
-  // fire); the __themeToggleHandled flag dedupes the Sidebar+Header listener pair.
-  const toggleRef = useRef(toggle);
-  toggleRef.current = toggle;
-  useEffect(() => {
-    const onPointerDown = (e) => {
-      if (e.__themeToggleHandled || !busy.current || e.button !== 0) return;
-      for (const btn of document.querySelectorAll('[data-theme-toggle]')) {
-        const r = btn.getBoundingClientRect();
-        if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
-          e.__themeToggleHandled = true;
-          toggleRef.current(e);
-          return;
-        }
-      }
-    };
-    window.addEventListener('pointerdown', onPointerDown, true);
-    return () => window.removeEventListener('pointerdown', onPointerDown, true);
-  }, []);
-
-  return { theme: displayTheme, isDark: displayTheme === DARK, toggle, setTheme, toggleProps };
+  return {
+    theme: displayTheme,
+    busy,
+    meta: THEME_META[displayTheme] || THEME_META[CLASSIC],
+    nextMeta: THEME_META[nextInCycle(displayTheme)] || THEME_META[CLASSIC],
+    isLight: displayTheme === LIGHT,
+    toggle,
+    setTheme,
+    toggleProps,
+  };
 }

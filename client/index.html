@@ -1,10 +1,31 @@
 <!doctype html>
-<html lang="en" data-theme="ultragrade-dark">
+<html lang="en" data-theme="ultragrade-classic">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0d1117" />
+    <meta name="theme-color" content="#0b1511" />
     <meta name="description" content="One-stop grade calculator and student planner for Ontario students" />
+
+    <!-- Apply the persisted theme BEFORE first paint to avoid a flash of the
+         wrong theme on load/reload. Mirrors the coercion in App.jsx (unknown/
+         legacy themes fall back to Classic). Must stay in <head>, inline, and
+         blocking so it runs before the body renders. -->
+    <script>
+      (function () {
+        try {
+          var VALID = { 'ultragrade-classic': '#0b1511', 'ultragrade-light': '#eef2ef' };
+          var theme = 'ultragrade-classic';
+          var raw = localStorage.getItem('ultragrade_settings');
+          if (raw) {
+            var saved = JSON.parse(raw).theme;
+            if (saved && VALID[saved]) theme = saved;
+          }
+          document.documentElement.setAttribute('data-theme', theme);
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', VALID[theme]);
+        } catch (e) { /* keep the html default (classic) on any failure */ }
+      })();
+    </script>
 
     <!-- Favicons -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />

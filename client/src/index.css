@@ -22,12 +22,16 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ── Ambient page atmosphere — a soft sage bloom anchored to the canvas ──── */
-[data-theme='ultragrade-dark'] body {
+/* ── Ambient page atmosphere — a soft brand bloom anchored to the canvas ─── */
+/* Per-theme glow colour driving shadow-bloom + .bloom-dot (see tailwind config). */
+[data-theme='ultragrade-classic'] { --bloom-color: rgba(195, 244, 0, 0.35); }
+[data-theme='ultragrade-light']   { --bloom-color: rgba(15, 157, 88, 0.28); }
+
+[data-theme='ultragrade-classic'] body {
   background:
-    radial-gradient(1100px 620px at 82% -8%, rgba(181, 205, 183, 0.07), transparent 60%),
-    radial-gradient(900px 520px at -6% 108%, rgba(247, 187, 126, 0.05), transparent 60%),
-    #0d1117;
+    radial-gradient(1100px 620px at 82% -8%, rgba(195, 244, 0, 0.06), transparent 60%),
+    radial-gradient(900px 520px at -6% 108%, rgba(74, 225, 118, 0.05), transparent 60%),
+    #0b1511;
   background-attachment: fixed;
 }
 [data-theme='ultragrade-light'] body {
@@ -52,7 +56,8 @@ body {
     -webkit-backdrop-filter: blur(18px) saturate(160%);
     transition: box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1),
                 transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
-                border-color 0.3s ease;
+                border-color 0.3s ease,
+                background 0.3s ease;
   }
   /* Pointer spotlight — sits above the fill, below content (z-index:-1). */
   .glass-card::before {
@@ -70,12 +75,12 @@ body {
     transition: opacity 0.4s ease;
     pointer-events: none;
   }
-  [data-theme='ultragrade-dark'] .glass-card {
-    background: linear-gradient(180deg, rgba(28, 34, 42, 0.66), rgba(19, 24, 30, 0.60));
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
-                0 8px 32px rgba(0, 0, 0, 0.40);
-    --spot-color: rgba(181, 205, 183, 0.16);
+  [data-theme='ultragrade-classic'] .glass-card {
+    background: linear-gradient(180deg, rgba(24, 34, 28, 0.66), rgba(15, 24, 20, 0.60));
+    border: 1px solid rgba(217, 249, 157, 0.08);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05),
+                0 8px 32px rgba(0, 0, 0, 0.45);
+    --spot-color: rgba(195, 244, 0, 0.14);
   }
   [data-theme='ultragrade-light'] .glass-card {
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.90), rgba(255, 255, 255, 0.78));
@@ -88,11 +93,11 @@ body {
     transform: translateY(-2px);
   }
   .glass-card.glass-hover:hover::before { opacity: calc(var(--spot, 0) + 0.15); }
-  [data-theme='ultragrade-dark'] .glass-card.glass-hover:hover {
-    border-color: rgba(181, 205, 183, 0.24);
-    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.10),
-                inset 0 0 0 1px rgba(181, 205, 183, 0.12),
-                0 14px 40px rgba(0, 0, 0, 0.50);
+  [data-theme='ultragrade-classic'] .glass-card.glass-hover:hover {
+    border-color: rgba(195, 244, 0, 0.28);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.09),
+                inset 0 0 0 1px rgba(195, 244, 0, 0.14),
+                0 14px 40px rgba(0, 0, 0, 0.55);
   }
   [data-theme='ultragrade-light'] .glass-card.glass-hover:hover {
     border-color: rgba(15, 157, 88, 0.24);
@@ -111,17 +116,25 @@ body {
     backdrop-filter: blur(10px) saturate(150%);
     -webkit-backdrop-filter: blur(10px) saturate(150%);
     transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
-                box-shadow 0.25s ease, border-color 0.25s ease;
+                box-shadow 0.25s ease, border-color 0.25s ease,
+                background-color 0.25s ease;
   }
-  [data-theme='ultragrade-dark'] .pill {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.09);
-    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.07);
+  [data-theme='ultragrade-classic'] .pill {
+    background: rgba(217, 249, 157, 0.05);
+    border: 1px solid rgba(217, 249, 157, 0.10);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
   }
   [data-theme='ultragrade-light'] .pill {
     background: rgba(255, 255, 255, 0.65);
     border: 1px solid rgba(20, 40, 28, 0.08);
     box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.85);
+  }
+  /* pill-hover must clip its own sweep even when used WITHOUT .pill (e.g. on a
+     plain button). Without this the ::after parallelogram escaped its rounded
+     box and rendered as a stray slab beside the element (the FAB artifact). */
+  .pill-hover {
+    position: relative;
+    overflow: hidden;
   }
   /* Slow light sweep — the "cursor highlight" gesture, only on hover. */
   .pill-hover::after {
@@ -144,8 +157,8 @@ body {
   .card:not(.glass-card) {
     border: 1px solid hsl(var(--b3) / 0.6);
   }
-  [data-theme='ultragrade-dark'] .card:not(.glass-card) {
-    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.28);
+  [data-theme='ultragrade-classic'] .card:not(.glass-card) {
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.32);
   }
   [data-theme='ultragrade-light'] .card:not(.glass-card) {
     box-shadow: 0 8px 24px rgba(30, 50, 38, 0.05);
@@ -159,8 +172,8 @@ body {
 }
 
 /* ── Signature glows ────────────────────────────────────────────────────── */
-[data-theme='ultragrade-dark'] .glow-sage {
-  text-shadow: 0 0 22px rgba(181, 205, 183, 0.35);
+[data-theme='ultragrade-classic'] .glow-sage {
+  text-shadow: 0 0 24px rgba(195, 244, 0, 0.30);
 }
 [data-theme='ultragrade-light'] .glow-sage {
   text-shadow: 0 0 22px rgba(15, 157, 88, 0.18);
@@ -186,14 +199,63 @@ body {
 }
 .print-only { display: none; }
 
-/* Smooth token transitions */
-* { transition-property: background-color, border-color, color; transition-duration: 150ms; }
+/* Smooth token transitions — every element crossfades its own colours on a
+   theme switch instead of snapping (see useThemeTransition: data-theme flips
+   synchronously and this is what makes the change read as a fade, not a cut). */
+* { transition-property: background-color, border-color, color, stroke, fill, outline-color; transition-duration: 150ms; }
 
 .font-mono { font-family: 'JetBrains Mono', monospace; }
 
 /* iOS safe area */
 .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
 .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+
+/* ── Native-app feel + mobile performance ───────────────────────────────────
+   The web build leans on stacked backdrop-blur + a fixed-attachment body glow,
+   both of which are GPU-expensive on phones and were the main source of PWA
+   scroll jank ("laggy, worse than the web version"). On touch/small screens we
+   drop the blur for a slightly more opaque solid fill (visually near-identical)
+   and pin the background so it doesn't repaint every scroll frame.            */
+html {
+  -webkit-text-size-adjust: 100%;   /* don't let iOS inflate body text */
+  text-size-adjust: 100%;
+}
+body {
+  -webkit-tap-highlight-color: transparent;   /* no grey flash on tap */
+  overscroll-behavior-y: none;                 /* no rubber-band / pull-to-refresh */
+}
+
+/* The main scroller gets momentum + contained overscroll for a native feel. */
+main {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* iOS zooms the whole page when you focus an input smaller than 16px and never
+   fully zooms back — that's the "loads/stays zoomed in" feeling. Force >=16px on
+   small screens. */
+@media (max-width: 640px) {
+  input, select, textarea { font-size: 16px !important; }
+}
+
+@media (hover: none), (max-width: 768px) {
+  /* Kill the per-surface backdrop blur — the biggest mobile cost. */
+  .glass-card, .pill {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  [data-theme='ultragrade-classic'] .glass-card {
+    background: linear-gradient(180deg, rgba(24, 34, 28, 0.94), rgba(15, 24, 20, 0.93));
+  }
+  [data-theme='ultragrade-light'] .glass-card {
+    background: linear-gradient(180deg, #ffffff, #fafcfa);
+  }
+  [data-theme='ultragrade-classic'] .pill { background: rgba(30, 42, 34, 0.9); }
+  [data-theme='ultragrade-light'] .pill { background: rgba(255, 255, 255, 0.94); }
+  /* fixed-attachment forces a full-viewport repaint on every scroll frame. */
+  [data-theme='ultragrade-classic'] body,
+  [data-theme='ultragrade-light'] body { background-attachment: scroll; }
+}
 
 /* ── Accessibility: keyboard focus + skip link ──────────────────────────── */
 a:focus-visible,
@@ -227,41 +289,47 @@ summary:focus-visible,
   transform: translateY(0);
 }
 
-/* ── Theme switch: content-aware circular reveal (View Transitions) ─────── */
-/* No cross-fade — both snapshots stay fully opaque; the new one is clipped over
-   the old via a WAAPI-driven growing circle (see useThemeTransition), so each
-   element repaints into the new theme as the wave passes over it. */
+/* ── Theme switch: View Transitions circular reveal ─────────────────────────
+   useThemeTransition drives `document.startViewTransition` + a WAAPI clip-path
+   animation on `::view-transition-new(root)` growing out from the click point.
+   The browser's default cross-fade (old fades out, new fades in, blended via
+   `mix-blend-mode: plus-lighter`) would put an opacity animation back in, which
+   is exactly what this is meant to avoid — so it's switched off here, leaving
+   only the clip-path we drive ourselves: a hard, solid edge with real content
+   (old-themed ahead of it, new-themed behind it) on both sides at all times.
+   Snapshot rate/cleanup rules that keep this from crashing the renderer live
+   in useThemeTransition.js — read its header before touching any of this. */
+::view-transition {
+  pointer-events: none;
+}
+::view-transition-group(root) {
+  animation-duration: 0ms;
+}
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation: none;
   mix-blend-mode: normal;
 }
-::view-transition-old(root) { z-index: 1; }
-::view-transition-new(root) { z-index: 2; }
 
-/* The snapshot overlay sits in the top layer above the live DOM; make it
-   click-through so the pointer event reaches window (the toggle is delegated there
-   during the sweep — see useThemeTransition). */
-::view-transition {
-  pointer-events: none;
-}
-
-/* During a transition, hit-testing collapses to <html>, so the toggle can't show
-   its own pointer cursor. Since the collapse target IS <html>, setting the cursor
-   here surfaces it for the (brief) sweep, keeping the control feeling live while
-   chaining. */
-html.theme-switching {
-  cursor: pointer;
-}
-
-/* Freeze the global 150ms colour transition during the sweep so an interrupted
-   wave never reveals a half-finished colour fade on the live DOM underneath (the
-   spam jitter). The class spans the whole chain (see useThemeTransition), so this
-   recalculates twice per chain, not once per wave. */
+/* While the data-theme attribute is swapped inside the transition callback,
+   this class freezes the universal 150ms colour transition — without it every
+   themed element spawns its own CSSTransition beneath the snapshot (thousands
+   of invisible animations of pure overhead per sweep). */
 html.theme-switching *,
 html.theme-switching *::before,
 html.theme-switching *::after {
   transition: none !important;
+}
+
+/* The rate limit made visible: while a sweep (+ cooldown) is running every
+   theme toggle is `disabled` — dim it hard and drop the pointer affordance so
+   "inactive" is unmistakable and nobody spam-clicks a live-looking button. */
+[data-theme-toggle]:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+  transform: scale(0.92);
+  transition: opacity 200ms ease, transform 200ms ease;
 }
 
 /* ── Reduced motion ─────────────────────────────────────────────────────── */
