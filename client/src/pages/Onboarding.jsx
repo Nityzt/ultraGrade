@@ -1,5 +1,5 @@
-import StudentTypeSelector from '../components/onboarding/StudentTypeSelector';
+import OnboardingWizard from '../components/onboarding/OnboardingWizard';
 
 export default function Onboarding() {
-  return <StudentTypeSelector />;
+  return <OnboardingWizard />;
 }
