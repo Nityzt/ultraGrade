@@ -1,5 +1,7 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, sortableKeyboardCoordinates, arrayMove } from '@dnd-kit/sortable';
 import { Pencil, Trash2, Plus, ExternalLink, ChevronDown, ChevronUp, Target, Timer, FileText } from 'lucide-react';
 import ProgressRing from '../ui/ProgressRing.jsx';
 import CategoryRow from './CategoryRow.jsx';
@@ -10,6 +12,7 @@ import { useGradeCalc } from '../../hooks/useGradeCalc.js';
 import { useApp } from '../../context/AppContext.jsx';
 import { getRmpUrl, getCourseRmpUrl } from '../../data/universities.js';
 import StudyTimer from './StudyTimer.jsx';
+import AnimatedNumber from '../ui/AnimatedNumber.jsx';
 
 function gradeProgressColor(pct) {
   if (pct === null) return 'var(--p)';
@@ -64,7 +67,7 @@ function QuickAddCategory({ courseId, onClose }) {
 }
 
 export default function CourseCard({ course, onEdit }) {
-  const { deleteCourse, deleteCategory, settings, updateCourse } = useApp();
+  const { deleteCourse, deleteCategory, updateCategory, settings, updateCourse } = useApp();
   const calc = useGradeCalc(course);
   const [catModal, setCatModal] = useState(false);
   const [editingCat, setEditingCat] = useState(null);
@@ -77,6 +80,29 @@ export default function CourseCard({ course, onEdit }) {
   const rmpProfUrl = getRmpUrl(course.professor, settings.school);
   const rmpCourseUrl = getCourseRmpUrl(course.code, settings.school);
   const progressColor = gradeProgressColor(calc?.displayGrade ?? null);
+
+  // Render (and drag) in persisted position order — updateCategory merges
+  // fields in place without reordering the array, so this is the source of
+  // truth rather than trusting course.categories' raw array order.
+  const sortedCategories = useMemo(
+    () => [...(course.categories || [])].sort((a, b) => (a.position ?? 0) - (b.position ?? 0)),
+    [course.categories]
+  );
+
+  const dndSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleCategoryDragEnd = ({ active, over }) => {
+    if (!over || active.id === over.id) return;
+    const oldIndex = sortedCategories.findIndex(c => c.id === active.id);
+    const newIndex = sortedCategories.findIndex(c => c.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    arrayMove(sortedCategories, oldIndex, newIndex).forEach((cat, i) => {
+      if (cat.position !== i) updateCategory(course.id, cat.id, { position: i });
+    });
+  };
 
   return (
     <motion.div
@@ -142,7 +168,9 @@ export default function CourseCard({ course, onEdit }) {
           <div className="flex gap-4 text-xs bg-base-300/30 rounded-xl px-3 py-2">
             <div>
               <span className="text-base-content/40 block leading-tight">Running</span>
-              <span className={`font-mono font-semibold ${calc.colorClass}`}>{calc.running.toFixed(1)}%</span>
+              <span className={`font-mono font-semibold ${calc.colorClass}`}>
+                <AnimatedNumber value={calc.running} format={{ maximumFractionDigits: 1 }} suffix="%" />
+              </span>
               <span className="text-base-content/30 ml-1 text-[10px]">({calc.assessedWeight}% assessed)</span>
             </div>
             {calc.projected !== calc.running && (
@@ -155,20 +183,24 @@ export default function CourseCard({ course, onEdit }) {
         )}
 
         {/* Categories */}
-        <div className="flex flex-col gap-2">
-          {(course.categories || []).map(cat => (
-            <CategoryRow
-              key={cat.id}
-              category={cat}
-              courseId={course.id}
-              onEdit={() => { setEditingCat(cat); setCatModal(true); }}
-              onDelete={() => deleteCategory(course.id, cat.id)}
-            />
-          ))}
-          {addingCat && (
-            <QuickAddCategory courseId={course.id} onClose={() => setAddingCat(false)} />
-          )}
-        </div>
+        <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleCategoryDragEnd}>
+          <SortableContext items={sortedCategories.map(c => c.id)} strategy={verticalListSortingStrategy}>
+            <div className="flex flex-col gap-2">
+              {sortedCategories.map(cat => (
+                <CategoryRow
+                  key={cat.id}
+                  category={cat}
+                  courseId={course.id}
+                  onEdit={() => { setEditingCat(cat); setCatModal(true); }}
+                  onDelete={() => deleteCategory(course.id, cat.id)}
+                />
+              ))}
+              {addingCat && (
+                <QuickAddCategory courseId={course.id} onClose={() => setAddingCat(false)} />
+              )}
+            </div>
+          </SortableContext>
+        </DndContext>
 
         {/* Notes area */}
         <div>
