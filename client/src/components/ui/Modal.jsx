@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { X } from 'lucide-react';
@@ -6,8 +6,23 @@ import { X } from 'lucide-react';
 const FOCUSABLE =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const handler = (e) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  return isMobile;
+}
+
 export default function Modal({ isOpen, onClose, title, children, size = 'md' }) {
   const reduce = useReducedMotion();
+  const isMobile = useIsMobile();
+  const isSheet = isMobile && !reduce;
   const dialogRef = useRef(null);
   const openerRef = useRef(null);
   const titleId = useId();
@@ -50,6 +65,10 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' })
 
   const sizeClasses = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' };
 
+  const handleDragEnd = (e, info) => {
+    if (info.offset.y > 120 || info.velocity.y > 600) onClose();
+  };
+
   return createPortal(
     <AnimatePresence>
       {isOpen && (
@@ -58,7 +77,7 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' })
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: reduce ? 0 : 0.15 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          className={`fixed inset-0 z-50 flex p-4 bg-black/60 backdrop-blur-sm ${isSheet ? 'items-end p-0' : 'items-center justify-center'}`}
           onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
         >
           <motion.div
@@ -69,23 +88,36 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' })
             aria-label={title ? undefined : 'Dialog'}
             tabIndex={-1}
             onKeyDown={onKeyDown}
-            initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: 8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: 8 }}
-            transition={{ duration: reduce ? 0 : 0.2, ease: 'easeOut' }}
-            className={`relative w-full ${sizeClasses[size]} bg-base-200 rounded-3xl shadow-2xl border border-base-300 max-h-[90vh] flex flex-col focus:outline-none`}
+            drag={isSheet ? 'y' : false}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.4 }}
+            onDragEnd={isSheet ? handleDragEnd : undefined}
+            initial={reduce ? { opacity: 0 } : isSheet ? { opacity: 1, y: '100%' } : { opacity: 0, scale: 0.95, y: 8 }}
+            animate={isSheet ? { opacity: 1, y: 0 } : { opacity: 1, scale: 1, y: 0 }}
+            exit={reduce ? { opacity: 0 } : isSheet ? { opacity: 1, y: '100%' } : { opacity: 0, scale: 0.95, y: 8 }}
+            transition={{ duration: reduce ? 0 : 0.25, ease: [0.22, 1, 0.36, 1] }}
+            className={`relative w-full bg-base-200 shadow-2xl border-base-300 flex flex-col focus:outline-none pb-safe ${
+              isSheet
+                ? 'rounded-t-3xl border-t max-h-[85vh]'
+                : `${sizeClasses[size]} rounded-3xl border max-h-[90vh]`
+            }`}
           >
+            {isSheet && (
+              <div className="shrink-0 flex justify-center pt-2.5 pb-1 touch-none">
+                <span className="w-10 h-1.5 rounded-full bg-base-content/20" />
+              </div>
+            )}
             {title ? (
               <div className="flex items-center justify-between px-6 py-4 border-b border-base-300 shrink-0">
                 <h3 id={titleId} className="font-semibold text-base-content">{title}</h3>
-                <button onClick={onClose} className="btn btn-sm btn-ghost btn-circle" aria-label="Close">
+                <button onClick={onClose} className="w-11 h-11 -m-2 flex items-center justify-center rounded-full text-base-content/70 hover:bg-base-300 active:scale-95 transition" aria-label="Close">
                   <X size={16} />
                 </button>
               </div>
             ) : (
               <button
                 onClick={onClose}
-                className="btn btn-sm btn-ghost btn-circle absolute top-3 right-3 z-10"
+                className="w-11 h-11 flex items-center justify-center rounded-full text-base-content/70 hover:bg-base-300 active:scale-95 transition absolute top-2 right-2 z-10"
                 aria-label="Close"
               >
                 <X size={16} />
