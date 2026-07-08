@@ -26,13 +26,13 @@ Track grades & GPA, manage your timetable, plan assignments, and access live Can
 | **Study Timer** | Pomodoro 25/5 per course with cumulative hour tracking |
 | **PDF Transcript Export** | Formatted transcript with grades and GPA (desktop) |
 | **Rate My Professors** | School-scoped deep links — pinpoints the professor at *your* university, not a national namesake list |
-| **Fast grade entry** | Inline quick-add for grades (type a score, press Enter) and categories — no modal round-trips |
-| **AI quick-add (⌘K)** | Type a task, grade, or class in plain English ("essay due next fri 20%", "got 85 on cs350 midterm", "lab mondays 2-4pm") — AI classifies it, resolves the date, matches your course, and you confirm before it's added |
+| **Fast grade entry** | Inline quick-add for grades (type a score, press Enter) and categories — no modal round-trips; drag to reorder categories |
+| **Command palette (⌘K)** | One palette for everything: type a task/grade/class in plain English ("essay due next fri 20%", "got 85 on cs350 midterm", "lab mondays 2-4pm") and AI classifies it, resolves the date, matches your course, and previews before adding — or jump to any page, add a course/task, export your transcript, switch theme/semester |
 | **Welcome intro** | A calm, one-time pre-login intro — a 3-panel "breathing orb" flow (welcome → what it does → **pick your theme live**) that lifts away like a curtain into the sign-in screen. Shown once per device; skippable |
 | **Guided onboarding** | Multi-step wizard (name → school → student type → optional first semester) that auto-selects your GPA scale, shown after your first sign-in |
 | **Calendar sync** | Export a private ICS feed of your deadlines (subscribe from Google/Apple/Outlook), and opt-in Google Calendar import → events become tasks & classes |
 | **Settings** | Name, school, GPA scale, theme, study permit expiry, week start, grade display format |
-| **Two themes** | **Classic** (electric-lime "Kinetic Moss" — the flagship brand identity, default) and **Light** (emerald). Toggle flips between them; Settings has a segmented picker. Switching uses a View-Transitions circular reveal sweeping out from the click point — solid edge, real content on both sides, and the toggle visibly locks while the reveal runs (on the login screen you can also drag it anywhere — it remembers its spot); reduced-motion aware. Your saved theme is applied before first paint (inline script in `index.html`), so there's no flash of the wrong theme on load/reload |
+| **Two themes** | **Classic** (electric-lime "Kinetic Moss" — the flagship brand identity, default) and **Light** (emerald). Toggle flips between them; Settings has a segmented picker. Switching uses a View-Transitions circular reveal sweeping out from the click point — solid edge, real content on both sides, and the toggle visibly locks while the reveal runs (on the login screen the toggle is a little physics toy — a soft "ping" halo invites you to grab it, then fling it and it flies with momentum, bounces off the edges, and springs back to its corner after a moment; a single rAF-driven `transform` keeps it at 60fps); reduced-motion aware. Your saved theme is applied before first paint (inline script in `index.html`), so there's no flash of the wrong theme on load/reload |
 | **Accessibility** | Skip-to-content, keyboard focus rings, focus-trapped dialogs, ARIA labels, live-region toasts for sync/offline |
 | **PWA** | Installable on iPhone & Android with a native icon set + install prompt; works offline (Workbox + SPA navigation fallback) |
 | **Auth** | Google OAuth + email/password; JWT-protected AI endpoint |
@@ -190,6 +190,10 @@ ultraGrade/
 | HTTP | axios |
 | Auth + DB | Supabase (Google OAuth + email/password, PostgreSQL + RLS) |
 | PDF export | jsPDF + jspdf-autotable |
+| Toasts | Sonner |
+| Animated numbers | NumberFlow |
+| Command palette | cmdk (⌘K — navigation + actions + AI quick-add) |
+| Drag & drop | dnd-kit (category reordering) |
 | Backend | Node.js + Express |
 | AI parsing | Google Gemini `gemini-2.5-flash` |
 | File uploads | multer (memory storage) |
