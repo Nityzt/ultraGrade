@@ -27,8 +27,14 @@ Track grades & GPA, manage your timetable, plan assignments, and access live Can
 | **PDF Transcript Export** | Formatted transcript with grades and GPA (desktop) |
 | **Rate My Professors** | School-scoped deep links — pinpoints the professor at *your* university, not a national namesake list |
 | **Fast grade entry** | Inline quick-add for grades (type a score, press Enter) and categories — no modal round-trips |
+| **AI quick-add (⌘K)** | Type a task, grade, or class in plain English ("essay due next fri 20%", "got 85 on cs350 midterm", "lab mondays 2-4pm") — AI classifies it, resolves the date, matches your course, and you confirm before it's added |
+| **Welcome intro** | A calm, one-time pre-login intro — a 3-panel "breathing orb" flow (welcome → what it does → **pick your theme live**) that lifts away like a curtain into the sign-in screen. Shown once per device; skippable |
+| **Guided onboarding** | Multi-step wizard (name → school → student type → optional first semester) that auto-selects your GPA scale, shown after your first sign-in |
+| **Calendar sync** | Export a private ICS feed of your deadlines (subscribe from Google/Apple/Outlook), and opt-in Google Calendar import → events become tasks & classes |
 | **Settings** | Name, school, GPA scale, theme, study permit expiry, week start, grade display format |
-| **PWA** | Installable on iPhone & Android, works offline with Workbox caching |
+| **Two themes** | **Classic** (electric-lime "Kinetic Moss" — the flagship brand identity, default) and **Light** (emerald). Toggle flips between them; Settings has a segmented picker. Switching uses a View-Transitions circular reveal sweeping out from the click point — solid edge, real content on both sides, and the toggle visibly locks while the reveal runs (on the login screen you can also drag it anywhere — it remembers its spot); reduced-motion aware. Your saved theme is applied before first paint (inline script in `index.html`), so there's no flash of the wrong theme on load/reload |
+| **Accessibility** | Skip-to-content, keyboard focus rings, focus-trapped dialogs, ARIA labels, live-region toasts for sync/offline |
+| **PWA** | Installable on iPhone & Android with a native icon set + install prompt; works offline (Workbox + SPA navigation fallback) |
 | **Auth** | Google OAuth + email/password; JWT-protected AI endpoint |
 
 ---
@@ -53,7 +59,7 @@ npm run install:all
 ### 2. Supabase Setup
 
 1. Create a project at [supabase.com](https://supabase.com)
-2. Go to **SQL Editor** → run the entire contents of `supabase/migrations/001_initial_schema.sql`
+2. Go to **SQL Editor** → run the entire contents of `supabase/migrations/001_initial_schema.sql` (and `002_calendar_immigration.sql` to enable calendar sync + immigration cache)
 3. **Authentication → Providers → Email** → Enable
 4. *(Optional)* **Authentication → Providers → Google** → paste your Google OAuth Client ID + Secret
 5. **Authentication → URL Configuration**:
@@ -70,6 +76,9 @@ GEMINI_API_KEY=your_google_ai_studio_key
 SUPABASE_URL=https://your-project.supabase.co
 CLIENT_URL=http://localhost:5173
 PORT=3001
+# Optional — enables the ICS calendar feed + immigration cache. Unset ⇒ those
+# features return "not configured"; the rest of the app is unaffected.
+SUPABASE_SERVICE_ROLE_KEY=
 # Optional — distributed rate limiting (falls back to in-memory if unset)
 UPSTASH_REDIS_REST_URL=
 UPSTASH_REDIS_REST_TOKEN=
@@ -103,6 +112,7 @@ npm run dev
 |----------|----------|-------------|
 | `GEMINI_API_KEY` | Yes | Google AI Studio key for course outline parsing |
 | `SUPABASE_URL` | Yes | Used for JWT JWKS verification |
+| `SUPABASE_SERVICE_ROLE_KEY` | No | Enables the ICS calendar feed + immigration cache (run migration 002 too). Never expose client-side. Disabled if unset |
 | `CLIENT_URL` | No | Frontend origin for CORS (default: `http://localhost:5173`) |
 | `PORT` | No | Backend port (default: `3001`) |
 | `UPSTASH_REDIS_REST_URL` | No | Enables distributed rate limiting; in-memory fallback if unset |
@@ -140,7 +150,7 @@ ultraGrade/
 └── client/                         # React + Vite frontend
     ├── vercel.json                 # SPA rewrites + cache headers
     ├── vite.config.js              # PWA plugin, /api proxy
-    ├── tailwind.config.js          # DaisyUI obsidian+sage / paper+emerald themes
+    ├── tailwind.config.js          # DaisyUI classic(lime-moss) / light(emerald) themes
     └── src/
         ├── main.jsx                # Provider tree: Auth > AuthGate > App > AppContext
         ├── App.jsx                 # Routes + auth guards
@@ -157,7 +167,8 @@ ultraGrade/
         │   ├── planner/            # TaskList, TaskFilterBar, DeadlineCalendar
         │   ├── immigration/        # InfoSection, WorkRightsTable, ResourceCard
         │   ├── layout/             # Sidebar, BottomNav, Header, Layout
-        │   └── ui/                 # Modal, ProgressRing, Badge, ConfirmDialog, etc.
+        │   ├── onboarding/         # WelcomeIntro (pre-login), OnboardingWizard (post-login)
+        │   └── ui/                 # Modal, ProgressRing, ConfirmDialog, PageHeader, etc.
         ├── hooks/                  # useGradeCalc, useSupabaseLoader, useSupabaseSync
         ├── utils/                  # gradeCalculations, dateHelpers, colorHelpers,
         │                           #   migrationUtils (all with Vitest tests)
@@ -171,7 +182,7 @@ ultraGrade/
 | Layer | Technology |
 |-------|-----------|
 | Frontend framework | React 18 + Vite |
-| Styling | Tailwind CSS v3 + DaisyUI v4 — "Obsidian + Sage" glass design system (dark sage / light emerald), Hanken Grotesk |
+| Styling | Tailwind CSS v3 + DaisyUI v4 — glass design system, two themes (Classic electric-lime moss / Light emerald), Hanken Grotesk |
 | Routing | react-router-dom v6 |
 | Animations | framer-motion |
 | Forms | react-hook-form |
@@ -185,7 +196,7 @@ ultraGrade/
 | PDF text extraction | pdf-parse |
 | JWT verification | jose (JWKS endpoint) |
 | PWA | vite-plugin-pwa + Workbox |
-| Tests | Vitest + jsdom (~100 unit tests) |
+| Tests | Vitest + jsdom (81 unit tests) |
 | Deployment | Vercel (frontend) + Render (backend) + Supabase (DB/auth) |
 
 ---
@@ -273,9 +284,9 @@ The app works offline once installed — grades, timetable, and tasks are always
 ## Contributing
 
 1. Fork the repo and create a branch: `git checkout -b feature/your-feature`
-2. Read `CLAUDE.md` for architecture, data models, and conventions
+2. Read this README for architecture, data models, and conventions
 3. Run `npm run dev` and test locally
-4. After any notable change — update **both `README.md` and `CLAUDE.md`** in the same PR
+4. After any notable change — keep this `README.md` up to date in the same PR
 5. Open a pull request
 
 ---

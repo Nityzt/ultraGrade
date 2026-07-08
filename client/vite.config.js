@@ -12,8 +12,8 @@ export default defineConfig({
         name: 'ultraGrade',
         short_name: 'ultraGrade',
         description: 'One-stop grade calculator and student planner for Ontario students',
-        theme_color: '#0d1117',
-        background_color: '#0d1117',
+        theme_color: '#0b1511',
+        background_color: '#0b1511',
         display: 'standalone',
         start_url: '/',
         scope: '/',
@@ -76,6 +76,20 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': { target: 'http://localhost:3001', changeOrigin: true }
+    }
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        // Stable vendor libs get their own chunks: they download in parallel,
+        // and an app-code change no longer invalidates the react/supabase/
+        // framer cache entries (long-lived PWA precache hits).
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-motion': ['framer-motion'],
+        }
+      }
     }
   },
   test: {
