@@ -13,10 +13,30 @@ services:
         sync: false
       - key: SUPABASE_URL
         sync: false
+      # Service-role key — powers the ICS calendar feed + immigration cache.
+      # Leave unset to keep those features disabled (rest of the app unaffected).
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
       - key: CLIENT_URL
         sync: false
       # Optional — enables distributed rate limiting (falls back to in-memory if unset)
       - key: UPSTASH_REDIS_REST_URL
         sync: false
       - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
+
+  # Background revalidation of immigration content → Supabase cache.
+  # Render cron egress can often reach canada.ca where the web instance can't.
+  # No-ops safely if SUPABASE_SERVICE_ROLE_KEY is unset. Runs every 6 hours.
+  - type: cron
+    name: ultragrade-immigration-revalidate
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    schedule: "0 */6 * * *"
+    startCommand: npm run revalidate:immigration
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false

@@ -5,6 +5,9 @@ import helmet from 'helmet';
 import requireAuth from './middleware/requireAuth.js';
 import { rateLimit } from './middleware/rateLimit.js';
 import parseOutlineRouter from './routes/parseOutline.js';
+import quickAddRouter from './routes/quickAdd.js';
+import calendarRouter from './routes/calendar.js';
+import accountRouter from './routes/account.js';
 import immigrationRouter from './routes/immigration.js';
 
 const app = express();
@@ -27,6 +30,26 @@ app.use(
   rateLimit({ name: 'parse-outline', limit: 10, windowMs: 60 * 60 * 1000 }),
   requireAuth,
   parseOutlineRouter
+);
+
+// Natural-language quick-add — also Gemini-backed. requireAuth runs FIRST so the
+// limiter keys per-user (req.user.id) rather than per-IP.
+app.use(
+  '/api/quick-add',
+  requireAuth,
+  rateLimit({ name: 'quick-add', limit: 30, windowMs: 60 * 60 * 1000 }),
+  quickAddRouter
+);
+
+// Account deletion — JWT-gated so a user can only delete themselves.
+app.use('/api/account', requireAuth, accountRouter);
+
+// Public ICS deadline feed — the token in the path is the credential. Throttle
+// per IP to blunt token enumeration; calendar clients poll infrequently.
+app.use(
+  '/api/calendar',
+  rateLimit({ name: 'calendar', limit: 60, windowMs: 60 * 1000 }),
+  calendarRouter
 );
 
 // Public endpoint — throttle per IP to protect the upstream fetch + cache.

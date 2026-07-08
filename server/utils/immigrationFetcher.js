@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { readCachedSection, writeCachedSection } from '../lib/immigrationCache.js';
 
 const SECTIONS = {
   'study-permit': {
@@ -192,6 +193,11 @@ async function revalidate(section, config) {
       fromFallback: !useLive,
     };
     cache.set(section, { data: result, at: Date.now(), ttl: useLive ? TTL_MS : NEG_TTL_MS });
+    // Persist real live content so it survives restarts and reaches instances
+    // that can't reach the gov host (fire-and-forget; no-op if unconfigured).
+    if (useLive) {
+      writeCachedSection(section, result).catch(() => {});
+    }
     return { ...result, fromCache: false };
   } catch (err) {
     console.warn(`Failed to fetch ${section}:`, err.message);
@@ -202,10 +208,46 @@ async function revalidate(section, config) {
   }
 }
 
-/** Fire the revalidation once and share the promise across concurrent callers. */
+/**
+ * Pull persisted live content from Supabase into the in-memory cache. This is
+ * how a web instance that can't reach canada.ca still serves live content that
+ * the background cron fetched. Only overwrites in-memory if the Supabase copy is
+ * usable and newer than what we hold.
+ */
+async function hydrateFromSupabase(section, config) {
+  const row = await readCachedSection(section);
+  if (!row || !row.content || row.content.length < MIN_USEFUL_LENGTH) return false;
+
+  const current = cache.get(section);
+  const currentAt = current ? new Date(current.data.fetchedAt).getTime() : 0;
+  const rowAt = row.fetchedAt ? new Date(row.fetchedAt).getTime() : Date.now();
+  if (current && !current.data.fromFallback && rowAt <= currentAt) return false;
+
+  const result = {
+    title: row.title || config.title,
+    content: row.content,
+    sourceUrl: row.sourceUrl || config.url,
+    fetchedAt: row.fetchedAt || new Date().toISOString(),
+    fromFallback: false,
+  };
+  cache.set(section, { data: result, at: Date.now(), ttl: TTL_MS });
+  return true;
+}
+
+/**
+ * Warm the cache once per section, sharing the promise across concurrent
+ * callers. Tries the persistent Supabase cache FIRST (fast + reliable), then
+ * attempts a direct gov revalidation (which may fail, and persists on success).
+ */
 function revalidateInBackground(section, config) {
   if (inFlight.has(section)) return;
-  const p = revalidate(section, config)
+  const p = hydrateFromSupabase(section, config)
+    .catch(() => false)
+    .then((hydrated) => {
+      // Still try a direct fetch to refresh/persist, unless we just hydrated
+      // fresh content — hydration alone is enough for this visit.
+      if (!hydrated) return revalidate(section, config);
+    })
     .catch(() => {})
     .finally(() => inFlight.delete(section));
   inFlight.set(section, p);
@@ -244,3 +286,6 @@ export function clearCache(section) {
   if (section) cache.delete(section);
   else cache.clear();
 }
+
+/** Sections that attempt live gov content (targets for the background cron). */
+export const LIVE_SECTIONS = Object.keys(SECTIONS).filter((s) => SECTIONS[s].preferLive);
