@@ -44,12 +44,27 @@ export default {
         'pop-in': {
           '0%': { opacity: '0', transform: 'translateY(12px) scale(0.96)' },
           '100%': { opacity: '1', transform: 'translateY(0) scale(1)' }
+        },
+        // Draggable theme toggle "try me" hints. Both rest at a no-op keyframe at
+        // 0%/100% so `prefers-reduced-motion` (which zeroes duration) shows nothing.
+        'toggle-halo': {   // sonar ping emanating outward
+          '0%': { transform: 'scale(0.85)', opacity: '0' },
+          '25%': { opacity: '0.5' },
+          '100%': { transform: 'scale(2.2)', opacity: '0' }
+        },
+        'toggle-nudge': {  // occasional little "I'm draggable" wiggle
+          '0%, 82%, 100%': { transform: 'translate3d(0,0,0) rotate(0deg)' },
+          '86%': { transform: 'translate3d(-2px,0,0) rotate(-11deg)' },
+          '90%': { transform: 'translate3d(2px,0,0) rotate(8deg)' },
+          '94%': { transform: 'translate3d(-1px,0,0) rotate(-4deg)' }
         }
       },
       animation: {
         'fade-up': 'fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both',
         'pulse-soft': 'pulse-soft 2.4s ease-in-out infinite',
-        'pop-in': 'pop-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both'
+        'pop-in': 'pop-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both',
+        'toggle-halo': 'toggle-halo 2.8s ease-out infinite',
+        'toggle-nudge': 'toggle-nudge 5s ease-in-out infinite'
       }
     }
   },

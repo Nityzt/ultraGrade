@@ -110,98 +110,213 @@ function Swap({ id, options, className = '', align = 'center' }) {
 const stagger = (i) => ({ animationDelay: `${i * 90}ms` });
 
 // ── Draggable floating theme toggle ─────────────────────────────────────────
-// Click toggles the theme; click-and-drag (>6px) picks the button up and moves
-// it anywhere on screen. It doesn't stay there: after a short pause it glides
-// smoothly back to its home in the top-right corner. A drag never fires the
-// toggle (`justDragged` swallows the click that follows pointerup).
+// Click toggles the theme; flick it and it flings with real momentum, bounces
+// softly off the screen edges, then springs home to the top-right corner after
+// a pause. A drag never fires the toggle (`justDragged` swallows the trailing
+// click).
 //
-// Three motion beats, all transform/position transitions (GPU-cheap):
-//   • pick-up  — while dragging: lifts (scale + glow ring), follows the cursor 1:1
-//   • place    — on drop: springy scale-settle back to rest (overshoot easing)
-//   • return   — after RETURN_DELAY: eased glide of left/top back to the corner,
-//                then hand position back to the `top-4 right-4` class seamlessly.
+// 60fps rule: ONE rAF physics loop writes ONE GPU-composited property —
+// `transform: translate3d(...) scale(...)` — and NOTHING per-frame goes through
+// React (no setState, no layout props like left/top). Position is a translate
+// offset from the button's fixed `top-4 right-4` home (0,0 = home), so the
+// scrollbar never enters the maths and the resting spot is always exact.
+//
+// Phases: 'drag' (weighted follow of the cursor) → 'inertia' (fling, friction,
+// edge bounce) → after RETURN_DELAY 'return' (spring toward home, inheriting the
+// live velocity so the redirect is seamless) → settle (clear transform).
 const TOGGLE_SIZE = 36;   // w-9/h-9
-const HOME_MARGIN = 16;   // matches top-4 / right-4 so the class↔coords swap is pixel-exact
-const RETURN_DELAY = 1800;
-const RETURN_MS = 620;
-const RETURN_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';   // smooth glide, no overshoot (won't fly off-corner)
-const SETTLE_EASE = 'cubic-bezier(0.34, 1.56, 0.64, 1)'; // springy scale settle on pick-up/drop
-const clampPos = (x, y, m = 8) => ({
-  x: Math.min(Math.max(x, m), window.innerWidth - TOGGLE_SIZE - m),
-  y: Math.min(Math.max(y, m), window.innerHeight - TOGGLE_SIZE - m),
-});
-const homePos = () => clampPos(window.innerWidth - TOGGLE_SIZE - HOME_MARGIN, HOME_MARGIN);
+const HOME_MARGIN = 16;   // top-4 / right-4
+const EDGE_M = 8;         // keep this far from the viewport edge
+const FOLLOW = 0.68;      // drag heft: fraction of the gap to the cursor closed per frame (1 = rigid)
+const FRICTION = 0.90;    // momentum velocity kept per 60fps frame (lower = coasts less)
+const FLING_DAMP = 0.62;  // fraction of the drag velocity carried into the fling on release
+const RESTITUTION = 0.38; // energy kept on an edge bounce
+const RETURN_DELAY = 2600;// ms it lingers where you flung it before drifting home (cooldown)
+const SPRING_K = 0.045;   // home-spring stiffness (softer = more leisurely glide)
+const SPRING_C = 0.30;    // home-spring damping (ζ≈0.70 → a touch of premium overshoot)
+const REST_V = 0.06;      // settle when |velocity| below this (px/frame)…
+const REST_D = 0.4;       // …and within this of home (px)
+const LIFT_SCALE = 1.22;  // pick-up scale
+const SCALE_EASE = 0.2;   // per-frame lerp toward target scale
+const DISCOVER_KEY = 'ultragrade_toggle_discovered'; // hide the "try me" hint once dragged
+
+// clientWidth/Height = content box (scrollbar excluded), which is what a fixed
+// element's offsets are relative to.
+const vpW = () => document.documentElement.clientWidth;
+const vpH = () => document.documentElement.clientHeight;
 
 function DraggableThemeToggle() {
   const { meta, nextMeta, toggleProps } = useThemeTransition();
   const ThemeIcon = meta.Icon;
   const btnRef = useRef(null);
-  const drag = useRef(null);      // { startX, startY, origX, origY, moved }
-  const justDragged = useRef(false);
+  const pos = useRef({ x: 0, y: 0 });     // translate offset from home
+  const vel = useRef({ x: 0, y: 0 });     // px per 60fps frame
+  const target = useRef({ x: 0, y: 0 });  // where the cursor wants it (drag)
+  const scale = useRef(1);
+  const phase = useRef('idle');           // 'idle' | 'drag' | 'inertia' | 'return'
+  const raf = useRef(0);
+  const lastT = useRef(0);
   const returnTimer = useRef(null);
-  const [pos, setPos] = useState(null);          // null = resting at the top-right home (class-based)
-  const [dragging, setDragging] = useState(false);
-  const [returning, setReturning] = useState(false); // gliding home → enables the left/top transition
+  const grab = useRef(null);              // { sx, sy, ox, oy, moved }
+  const justDragged = useRef(false);
+  const clearDragFlag = useRef(null);
+  const [lifted, setLifted] = useState(false); // ring/shadow only (2 renders/drag, never per-frame)
+  const [discovered, setDiscovered] = useState(() => {
+    try { return localStorage.getItem(DISCOVER_KEY) === '1'; } catch { return false; }
+  });
 
+  const reduced = () => window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+
+  // Translate-offset bounds so the button stays EDGE_M inside the viewport.
+  const boundsFor = () => {
+    const homeX = vpW() - TOGGLE_SIZE - HOME_MARGIN;
+    return {
+      minX: EDGE_M - homeX, maxX: (vpW() - TOGGLE_SIZE - EDGE_M) - homeX,
+      minY: EDGE_M - HOME_MARGIN, maxY: (vpH() - TOGGLE_SIZE - EDGE_M) - HOME_MARGIN,
+    };
+  };
+
+  const paint = () => {
+    const el = btnRef.current;
+    if (el) el.style.transform = `translate3d(${pos.current.x}px, ${pos.current.y}px, 0) scale(${scale.current})`;
+  };
+  const stopLoop = () => { cancelAnimationFrame(raf.current); raf.current = 0; lastT.current = 0; };
+  const startLoop = () => { if (!raf.current) raf.current = requestAnimationFrame(tick); };
+  const settleHome = () => {
+    pos.current = { x: 0, y: 0 }; vel.current = { x: 0, y: 0 }; scale.current = 1; phase.current = 'idle';
+    const el = btnRef.current;
+    if (el) { el.style.transform = ''; el.style.willChange = ''; }
+    stopLoop();
+  };
+
+  const tick = (t) => {
+    if (!lastT.current) lastT.current = t;
+    const f = Math.min(t - lastT.current, 32) / 16.667 || 1; // frame-scale, clamped so a stalled tab can't explode the spring
+    lastT.current = t;
+    const p = pos.current, v = vel.current, b = boundsFor(), ph = phase.current;
+
+    if (ph === 'drag') {
+      const tg = target.current;
+      const k = 1 - Math.pow(1 - FOLLOW, f);
+      const nx = p.x + (tg.x - p.x) * k, ny = p.y + (tg.y - p.y) * k;
+      v.x = (nx - p.x) / f; v.y = (ny - p.y) / f; // live velocity for the fling
+      p.x = nx; p.y = ny;
+    } else if (ph === 'inertia') {
+      p.x += v.x * f; p.y += v.y * f;
+      if (p.x < b.minX) { p.x = b.minX; v.x = -v.x * RESTITUTION; }
+      else if (p.x > b.maxX) { p.x = b.maxX; v.x = -v.x * RESTITUTION; }
+      if (p.y < b.minY) { p.y = b.minY; v.y = -v.y * RESTITUTION; }
+      else if (p.y > b.maxY) { p.y = b.maxY; v.y = -v.y * RESTITUTION; }
+      const fr = Math.pow(FRICTION, f);
+      v.x *= fr; v.y *= fr;
+    } else if (ph === 'return') {
+      v.x += (-SPRING_K * p.x - SPRING_C * v.x) * f;
+      v.y += (-SPRING_K * p.y - SPRING_C * v.y) * f;
+      p.x += v.x * f; p.y += v.y * f;
+      if (Math.hypot(p.x, p.y) < REST_D && Math.hypot(v.x, v.y) < REST_V) { settleHome(); return; }
+    }
+    const targetScale = ph === 'drag' ? LIFT_SCALE : 1;
+    scale.current += (targetScale - scale.current) * (1 - Math.pow(1 - SCALE_EASE, f));
+    paint();
+    raf.current = requestAnimationFrame(tick);
+  };
+
+  // Drag lifecycle. pointerDOWN comes from the button (so it only starts on the
+  // toggle), but MOVE/UP are listened for on `window` (below) — releasing or
+  // dragging off the button still ends the drag cleanly. This is the fix for the
+  // "sometimes it gets stuck" bug: relying on the button's own pointerup +
+  // setPointerCapture dropped the release when the pointer left the element, so
+  // it stayed frozen mid-drag with nothing to bring it home.
+  const beginDrag = (x, y) => {
+    clearTimeout(returnTimer.current);
+    stopLoop();                       // freeze any in-flight motion where it is
+    phase.current = 'idle';
+    vel.current = { x: 0, y: 0 };
+    grab.current = { sx: x, sy: y, ox: pos.current.x, oy: pos.current.y, moved: false };
+  };
+  const moveDrag = (x, y) => {
+    const g = grab.current;
+    if (!g) return;
+    const dx = x - g.sx, dy = y - g.sy;
+    if (!g.moved && Math.hypot(dx, dy) < 6) return; // ignore jitter so a plain click still toggles
+    if (!g.moved) {
+      g.moved = true;
+      setLifted(true);
+      if (!discovered) { setDiscovered(true); try { localStorage.setItem(DISCOVER_KEY, '1'); } catch { /* private mode */ } }
+      if (btnRef.current) btnRef.current.style.willChange = 'transform';
+      phase.current = 'drag';
+      startLoop();
+    }
+    const b = boundsFor();
+    target.current = {
+      x: Math.min(Math.max(g.ox + dx, b.minX), b.maxX),
+      y: Math.min(Math.max(g.oy + dy, b.minY), b.maxY),
+    };
+  };
+  const endDrag = () => {
+    const g = grab.current;
+    grab.current = null;
+    if (!g) return;
+    if (g.moved) {
+      // Swallow the click a drag leaves behind — but only briefly. If the release
+      // lands off the button no click follows, and a permanent flag would eat the
+      // NEXT genuine click; clear it after the click has had time to fire.
+      justDragged.current = true;
+      clearTimeout(clearDragFlag.current);
+      clearDragFlag.current = setTimeout(() => { justDragged.current = false; }, 350);
+      setLifted(false);
+      if (reduced()) { settleHome(); return; }
+      vel.current.x *= FLING_DAMP;    // gentler throw — carry only part of the drag velocity
+      vel.current.y *= FLING_DAMP;
+      phase.current = 'inertia';      // fling with the (damped) velocity the drag built up
+      startLoop();
+    }
+    // Flung or just nudged, head home after the cooldown (spring inherits
+    // whatever velocity is live at that instant).
+    if (pos.current.x !== 0 || pos.current.y !== 0) {
+      clearTimeout(returnTimer.current);
+      returnTimer.current = setTimeout(() => {
+        if (reduced()) { settleHome(); return; }
+        phase.current = 'return';
+        startLoop();
+      }, RETURN_DELAY);
+    }
+  };
+  // Safety net: if the tab was hidden mid-flight rAF freezes and can strand the
+  // button off-corner. On return-to-visible, kick it home.
+  const kickIfStuck = () => {
+    if (grab.current) return;                                   // actively dragging → leave it
+    if (pos.current.x === 0 && pos.current.y === 0) return;     // already home
+    lastT.current = 0;
+    if (phase.current === 'idle' || phase.current === 'drag') phase.current = 'return';
+    startLoop();
+  };
+
+  // window (not button) move/up + visibility recovery. Latest closures via refs
+  // so the once-mounted listeners always see current `discovered` etc.
+  const moveRef = useRef(); moveRef.current = moveDrag;
+  const upRef = useRef(); upRef.current = endDrag;
+  const stuckRef = useRef(); stuckRef.current = kickIfStuck;
   useEffect(() => {
-    const onResize = () => setPos((p) => (p ? clampPos(p.x, p.y) : p));
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
+    const move = (e) => moveRef.current(e.clientX, e.clientY);
+    const up = () => upRef.current();
+    const vis = () => { if (document.visibilityState === 'visible') stuckRef.current(); };
+    window.addEventListener('pointermove', move, { passive: true });
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+    document.addEventListener('visibilitychange', vis);
+    return () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+      document.removeEventListener('visibilitychange', vis);
+      stopLoop();
+      clearTimeout(returnTimer.current);
+      clearTimeout(clearDragFlag.current);
+    };
   }, []);
-  useEffect(() => () => clearTimeout(returnTimer.current), []);
 
-  const scheduleReturn = () => {
-    clearTimeout(returnTimer.current);
-    returnTimer.current = setTimeout(() => {
-      setReturning(true);   // turn on the left/top transition, then move to home so it glides
-      setPos(homePos());
-    }, RETURN_DELAY);
-  };
-
-  const onPointerDown = (e) => {
-    clearTimeout(returnTimer.current);
-    const r = btnRef.current.getBoundingClientRect();
-    // If grabbed mid-glide, freeze at the current visual spot so it doesn't jump.
-    if (returning) { setReturning(false); setPos({ x: r.left, y: r.top }); }
-    drag.current = { startX: e.clientX, startY: e.clientY, origX: r.left, origY: r.top, moved: false };
-    try { btnRef.current.setPointerCapture(e.pointerId); } catch { /* fine without capture */ }
-  };
-  const onPointerMove = (e) => {
-    const d = drag.current;
-    if (!d) return;
-    const dx = e.clientX - d.startX, dy = e.clientY - d.startY;
-    if (!d.moved && Math.hypot(dx, dy) < 6) return; // ignore jitter so a plain click still toggles
-    if (!d.moved) setDragging(true);                // first real movement → pick up
-    d.moved = true;
-    setPos(clampPos(d.origX + dx, d.origY + dy));
-  };
-  const onPointerUp = () => {
-    const d = drag.current;
-    drag.current = null;
-    if (d?.moved) {
-      justDragged.current = true;   // swallow the trailing click
-      setDragging(false);           // drop → springy scale-settle (SETTLE_EASE on transform)
-      scheduleReturn();             // …and start the countdown to glide home
-    }
-  };
-  const onTransitionEnd = (e) => {
-    // Once the glide-home finishes, hand positioning back to the class so the
-    // button rests exactly where `top-4 right-4` puts it (survives later resizes).
-    if (returning && (e.propertyName === 'left' || e.propertyName === 'top')) {
-      setReturning(false);
-      setPos(null);
-    }
-  };
-
-  const style = { touchAction: 'none' };
-  if (pos) { style.left = pos.x; style.top = pos.y; }
-  style.transition = [
-    'background-color 300ms',
-    'box-shadow 300ms',
-    `transform 320ms ${SETTLE_EASE}`,
-    returning && `left ${RETURN_MS}ms ${RETURN_EASE}`,
-    returning && `top ${RETURN_MS}ms ${RETURN_EASE}`,
-  ].filter(Boolean).join(', ');
+  const hint = !discovered; // draw the eye until the user has flung it once
 
   return (
     <button
@@ -211,21 +326,20 @@ function DraggableThemeToggle() {
         if (justDragged.current) { justDragged.current = false; return; } // drop the click a drag leaves behind
         toggleProps.onClick(e);
       }}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerUp}
-      onTransitionEnd={onTransitionEnd}
-      className={`fixed z-20 w-9 h-9 rounded-full bg-base-200/60 border border-base-300 flex items-center justify-center text-primary group animate-fade-up ${pos ? '' : 'top-4 right-4'} ${
-        dragging
-          ? 'scale-125 shadow-xl shadow-primary/40 ring-2 ring-primary/50 bg-base-300/80 cursor-grabbing z-40'
-          : 'hover:bg-base-300/60 cursor-grab'
+      onPointerDown={(e) => beginDrag(e.clientX, e.clientY)}
+      className={`fixed top-4 right-4 w-9 h-9 rounded-full bg-base-200/60 border border-base-300 flex items-center justify-center text-primary group transition-[background-color,box-shadow,border-color] duration-300 ${
+        lifted
+          ? 'shadow-xl shadow-primary/40 ring-2 ring-primary/50 bg-base-300/80 cursor-grabbing z-40'
+          : `hover:bg-base-300/60 cursor-grab z-20 ${hint ? 'ring-1 ring-primary/40 shadow-bloom animate-toggle-nudge' : ''}`
       }`}
-      style={style}
-      aria-label={`Theme: ${meta.label}. Click to switch to ${nextMeta.label}. Drag to move (it glides back).`}
-      title={`${meta.label} — click for ${nextMeta.label} · drag to fling it around`}
+      style={{ touchAction: 'none' }}
+      aria-label={`Theme: ${meta.label}. Click to switch to ${nextMeta.label}. Drag to fling it (it springs back).`}
+      title={`${meta.label} — click for ${nextMeta.label} · fling me`}
     >
-      <ThemeIcon size={16} className={`transition-transform duration-300 ${dragging ? 'rotate-[-12deg] scale-110' : 'group-hover:rotate-[18deg] group-active:scale-90'}`} />
+      {/* "try me" affordance: a soft sonar ping emanating from the toggle, only
+          until the first drag. Decorative; reduced-motion collapses the keyframe. */}
+      {hint && <span aria-hidden="true" className="absolute inset-0 rounded-full border-2 border-primary/60 animate-toggle-halo pointer-events-none" />}
+      <ThemeIcon size={16} className={`transition-transform duration-300 ${lifted ? 'rotate-[-12deg] scale-110' : 'group-hover:rotate-[18deg] group-active:scale-90'}`} />
     </button>
   );
 }
