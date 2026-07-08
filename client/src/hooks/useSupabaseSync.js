@@ -261,3 +261,14 @@ export function upsertProfile(settings, userId) {
     updated_at: new Date().toISOString(),
   }, { onConflict: 'id' });
 }
+
+// Calendar-sync columns (ics_token, calendar_connected) live behind migration
+// 002. They are written ONLY here — never in upsertProfile — so ordinary
+// settings saves keep working even before an operator has run 002. If the
+// migration is missing, only this call fails (surfaced as a toast).
+export function updateProfileCalendar(userId, { icsToken, calendarConnected }) {
+  const row = { id: userId, updated_at: new Date().toISOString() };
+  if (icsToken !== undefined) row.ics_token = icsToken;
+  if (calendarConnected !== undefined) row.calendar_connected = calendarConnected;
+  return supabase.from('profiles').upsert(row, { onConflict: 'id' });
+}

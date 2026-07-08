@@ -71,7 +71,7 @@ const toTask = (r) => ({
 });
 
 const toSettings = (r) => ({
-  theme: r.theme || 'ultragrade-dark',
+  theme: r.theme || 'ultragrade-classic',
   activeSemesterId: r.active_semester_id || null,
   gpaScale: r.gpa_scale || 'standard-4.0',
   gradeDisplay: r.grade_display || 'percentage',
@@ -80,6 +80,8 @@ const toSettings = (r) => ({
   school: r.school || '',
   permitExpiryDate: r.permit_expiry_date || null,
   studentName: r.student_name || '',
+  icsToken: r.ics_token || null,
+  calendarConnected: r.calendar_connected || false,
 });
 
 export async function loadAll(userId) {

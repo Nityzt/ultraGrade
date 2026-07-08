@@ -13,7 +13,7 @@ function generateId() {
 }
 
 const DEFAULT_SETTINGS = {
-  theme: 'ultragrade-dark',
+  theme: 'ultragrade-classic',
   activeSemesterId: null,
   gpaScale: 'standard-4.0',
   gradeDisplay: 'percentage',
@@ -21,7 +21,9 @@ const DEFAULT_SETTINGS = {
   studentType: null,
   school: '',
   permitExpiryDate: null,
-  studentName: ''
+  studentName: '',
+  icsToken: null,
+  calendarConnected: false
 };
 
 export function AppProvider({ children }) {
@@ -33,22 +35,33 @@ export function AppProvider({ children }) {
   const [tasks, setTasks] = useLocalStorage('ultragrade_tasks', []);
   const [settings, setSettings] = useLocalStorage('ultragrade_settings', DEFAULT_SETTINGS);
   const [studyHours, setStudyHours] = useLocalStorage('ultragrade_study_hours', {});
-  const [isLoaded, setIsLoaded] = useState(false);
+  // Track WHICH user's data is loaded, not just "loaded at all". `isLoaded` is
+  // then derived synchronously from the current user — so the instant the user
+  // changes (e.g. right after sign-in, when navigate('/') renders the route
+  // guards), it reads false without waiting for the load effect to run. A plain
+  // boolean left a stale `true` from the logged-out branch, which let
+  // RequireStudentType redirect to /onboarding before the profile hydrated
+  // (the "asks for student type every time" bug).
+  const [loadedUserId, setLoadedUserId] = useState(undefined);
   const [syncError, setSyncError] = useState(null);
+  const isLoaded = loadedUserId === (user?.id ?? null);
 
   // Load all data from Supabase when user signs in
   useEffect(() => {
-    if (!user) { setIsLoaded(true); return; }
-    setIsLoaded(false);
-    loadAll(user.id).then(({ semesters: s, courses: c, timetableEntries: te, tasks: t, settings: sets, studyHours: sh, error }) => {
-      if (error) { setIsLoaded(true); return; }
-      if (s)   setSemesters(s);
-      if (c)   setCourses(c);
-      if (te)  setTimetableEntries(te);
-      if (t)   setTasks(t);
-      if (sets) setSettings(prev => ({ ...prev, ...sets }));
-      if (sh)  setStudyHours(sh);
-      setIsLoaded(true);
+    if (!user) { setLoadedUserId(null); return; }
+    const uid = user.id;
+    loadAll(uid).then(({ semesters: s, courses: c, timetableEntries: te, tasks: t, settings: sets, studyHours: sh, error }) => {
+      if (!error) {
+        if (s)   setSemesters(s);
+        if (c)   setCourses(c);
+        if (te)  setTimetableEntries(te);
+        if (t)   setTasks(t);
+        if (sets) setSettings(prev => ({ ...prev, ...sets }));
+        if (sh)  setStudyHours(sh);
+      }
+      // Mark this user as loaded even on error, so the guards stop spinning and
+      // fall through to whatever the (cached/default) settings say.
+      setLoadedUserId(uid);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
@@ -78,6 +91,19 @@ export function AppProvider({ children }) {
     const defaultScale = getDefaultGpaScale(school);
     updateSettings({ school, gpaScale: defaultScale });
   }, [updateSettings]);
+
+  // Calendar sync (ICS feed token + Google-connected flag). Writes go through a
+  // dedicated sync fn (updateProfileCalendar) that only touches the migration-002
+  // columns, so ordinary settings saves are unaffected if 002 hasn't been run.
+  const setCalendarSync = useCallback((updates) => {
+    setSettings(prev => ({ ...prev, ...updates }));
+    if (user) sync.updateProfileCalendar(user.id, {
+      icsToken: 'icsToken' in updates ? updates.icsToken : undefined,
+      calendarConnected: 'calendarConnected' in updates ? updates.calendarConnected : undefined,
+    }).then(({ error }) => {
+      if (error) onSyncError('Failed to save calendar settings — has migration 002 been run?');
+    });
+  }, [setSettings, user]);
 
   // ── Semesters ─────────────────────────────────────────────────────────────
   const addSemester = useCallback((data) => {
@@ -385,7 +411,7 @@ export function AppProvider({ children }) {
     semesters, courses, timetableEntries, tasks, settings, studyHours,
     activeSemester, activeCourses, activeTasks, activeTimetable,
     isLoaded, syncError,
-    updateSettings, setStudentType, updateSchool,
+    updateSettings, setStudentType, updateSchool, setCalendarSync,
     addSemester, updateSemester, deleteSemester, setActiveSemester,
     addCourse, updateCourse, deleteCourse,
     addCategory, updateCategory, deleteCategory,
