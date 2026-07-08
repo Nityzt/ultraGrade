@@ -1,5 +1,5 @@
 import { useApp } from '../../context/AppContext';
-import { calcCourseGrade } from '../../utils/gradeCalculations';
+import { calcCourseGrade, gradeHex, gradeGradient } from '../../utils/gradeCalculations';
 import { BookOpen } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -23,6 +23,7 @@ export default function CourseStatusWidget() {
           {activeCourses.map(course => {
             const { running, assessedWeight } = calcCourseGrade(course);
             const graded = running != null;
+            const hex = graded ? gradeHex(running) : null;
             return (
               <Link
                 key={course.id}
@@ -30,11 +31,15 @@ export default function CourseStatusWidget() {
                 className="flex flex-col gap-2 group rounded-xl -m-1 p-1 transition-colors hover:bg-base-content/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               >
                 <div className="flex items-end justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold text-base-content truncate">{course.code}</div>
-                    <div className="text-[11px] text-base-content/45 truncate">{course.name}</div>
+                  <div className="min-w-0 flex items-center gap-2">
+                    {/* course identity color lives here as a small dot, not on the bar */}
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: course.color }} />
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-base-content truncate">{course.code}</div>
+                      <div className="text-[11px] text-base-content/45 truncate">{course.name}</div>
+                    </div>
                   </div>
-                  <span className="font-display font-bold text-lg tabular shrink-0" style={{ color: graded ? course.color : undefined }}>
+                  <span className="font-display font-bold text-lg tabular shrink-0" style={{ color: hex || undefined }}>
                     {graded ? `${Math.round(running)}%` : '—'}
                   </span>
                 </div>
@@ -43,8 +48,8 @@ export default function CourseStatusWidget() {
                     className="h-full rounded-full transition-all duration-700"
                     style={{
                       width: `${graded ? Math.min(running, 100) : 0}%`,
-                      backgroundColor: course.color,
-                      boxShadow: graded ? `0 0 10px ${course.color}66` : undefined
+                      background: graded ? gradeGradient(running) : undefined,
+                      boxShadow: graded ? `0 0 10px ${hex}66` : undefined
                     }}
                   />
                 </div>

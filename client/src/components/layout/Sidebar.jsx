@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, GraduationCap, Calendar, ClipboardList, Globe, BookOpen, Settings, ChevronDown, Sun, Moon, Check } from 'lucide-react';
+import { LayoutDashboard, GraduationCap, Calendar, ClipboardList, Globe, BookOpen, Settings, ChevronDown, Check } from 'lucide-react';
 import { useApp } from '../../context/AppContext.jsx';
 import { useThemeTransition } from '../../hooks/useThemeTransition.js';
 import { calcSemesterGPA } from '../../utils/gradeCalculations.js';
@@ -100,7 +100,8 @@ function SemesterSelector() {
 
 export default function Sidebar() {
   const { settings, activeCourses } = useApp();
-  const { isDark, toggleProps } = useThemeTransition();
+  const { meta, nextMeta, toggleProps } = useThemeTransition();
+  const ThemeIcon = meta.Icon;
 
   const gpa = calcSemesterGPA(activeCourses, settings.gpaScale);
   const isInt = settings.studentType === 'international';
@@ -147,12 +148,20 @@ export default function Sidebar() {
 
       {/* Theme toggle + user */}
       <div className="mt-auto pt-3 border-t border-base-300/60 flex flex-col gap-1">
-        <div className="flex items-center justify-between px-2 py-1 select-none">
-          <span className="text-xs text-base-content/40">{isDark ? 'Dark mode' : 'Light mode'}</span>
-          <button {...toggleProps} className="btn btn-xs btn-ghost btn-circle text-base-content/50 hover:text-primary" aria-label="Toggle theme">
-            {isDark ? <Sun size={15} /> : <Moon size={15} />}
-          </button>
-        </div>
+        <button
+          {...toggleProps}
+          className="flex items-center justify-between gap-2 px-2.5 py-2 rounded-2xl select-none text-left hover:bg-base-content/5 transition-colors group"
+          aria-label={`Theme: ${meta.label}. Click to switch to ${nextMeta.label}`}
+          title={`${meta.label} — click for ${nextMeta.label}`}
+        >
+          <span className="flex flex-col leading-tight">
+            <span className="text-xs font-medium text-base-content/70">{meta.label} theme</span>
+            <span className="text-[10px] text-base-content/35">{meta.hint}</span>
+          </span>
+          <span className="w-7 h-7 rounded-full bg-primary/12 border border-primary/20 flex items-center justify-center text-primary shrink-0 transition-transform duration-300 group-hover:rotate-[18deg] group-active:scale-90">
+            <ThemeIcon size={14} />
+          </span>
+        </button>
         <UserMenu />
       </div>
     </aside>

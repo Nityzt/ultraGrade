@@ -124,3 +124,32 @@ export function gradeBgClass(percentage) {
   if (percentage >= 50) return 'bg-orange-400/10 border-orange-400/30';
   return 'bg-error/10 border-error/30';
 }
+
+/**
+ * Grade-quality color as a raw hex — brand-consistent (green/lime high → ruby
+ * low), used for progress fills, percentages and glows where a DaisyUI token
+ * class won't do (inline styles). This keeps dashboard bars on the green brand
+ * instead of the per-course identity color, which clashed.
+ */
+export function gradeHex(percentage) {
+  if (percentage === null || percentage === undefined) return '#8a9391';
+  if (percentage >= 80) return '#4ae176'; // spring green
+  if (percentage >= 70) return '#7fb4d6'; // info blue
+  if (percentage >= 60) return '#f7bb7e'; // amber
+  if (percentage >= 50) return '#fb923c'; // orange
+  return '#ffb4ab';                        // ruby
+}
+
+/**
+ * Two-stop gradient for a progress bar — the "energy filling up" look. Top
+ * grades earn the signature green→electric-lime sweep; lower bands get a subtler
+ * two-tone of their quality color.
+ */
+export function gradeGradient(percentage) {
+  if (percentage === null || percentage === undefined) return 'linear-gradient(90deg, #3a423f, #3a423f)';
+  if (percentage >= 80) return 'linear-gradient(90deg, #22c55e, #c3f400)';
+  if (percentage >= 70) return 'linear-gradient(90deg, #5a95c8, #7fb4d6)';
+  if (percentage >= 60) return 'linear-gradient(90deg, #e0913f, #f7bb7e)';
+  if (percentage >= 50) return 'linear-gradient(90deg, #e5731f, #fb923c)';
+  return 'linear-gradient(90deg, #e08b84, #ffb4ab)';
+}

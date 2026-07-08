@@ -55,13 +55,6 @@ export default function Timetable() {
         ) : (
           <DayView entries={dayEntries} onEdit={openEdit} />
         )}
-        {/* FAB */}
-        <button
-          onClick={() => openAdd(selectedDay)}
-          className="fixed bottom-20 right-4 btn btn-primary btn-circle shadow-lg z-30"
-        >
-          <Plus size={24} />
-        </button>
       </div>
 
       {/* Desktop: weekly grid */}

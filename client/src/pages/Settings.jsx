@@ -4,10 +4,13 @@ import { useForm } from 'react-hook-form';
 import { useEffect, useState } from 'react';
 import { ONTARIO_UNIVERSITIES, getDefaultGpaScale } from '../data/universities';
 import { GPA_SCALES } from '../data/gpaScales';
-import { Palette, User, Globe, Book, Moon, Sun, Bell } from 'lucide-react';
+import { Palette, User, Globe, Book, Bell } from 'lucide-react';
+import { useThemeTransition, THEMES, THEME_META } from '../hooks/useThemeTransition.js';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import PageHeader from '../components/ui/PageHeader';
+import CalendarSyncCard from '../components/settings/CalendarSyncCard';
 import { supabase } from '../lib/supabase.js';
+import { API_BASE_URL } from '../lib/apiBase.js';
 
 const GPA_SCALE_OPTIONS = [
   { value: 'standard-4.0', label: 'Standard Ontario 4.0 (U of T, Waterloo, Western…)' },
@@ -17,9 +20,20 @@ const GPA_SCALE_OPTIONS = [
 
 export default function Settings() {
   const { settings, updateSettings, updateSchool, setStudentType, semesters, deleteSemester, activeSemester } = useApp();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const [clearConfirm, setClearConfirm] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const { register, handleSubmit, watch, setValue, reset } = useForm({ defaultValues: settings });
+  const { setTheme } = useThemeTransition();
+  const watchedTheme = watch('theme');
+  // Legacy 'ultragrade-dark' (removed) reads as Classic for the active highlight.
+  const currentTheme = THEMES.includes(watchedTheme) ? watchedTheme : 'ultragrade-classic';
+
+  // Apply instantly (with the circular reveal) AND keep the form field in sync so
+  // a later Save doesn't revert it. setTheme persists via updateSettings itself.
+  const pickTheme = (t, e) => { setValue('theme', t, { shouldDirty: true }); setTheme(t, e); };
 
   useEffect(() => {
     reset(settings);
@@ -45,21 +59,58 @@ export default function Settings() {
   const clearAllData = async () => {
     setClearError(null);
     try {
-      localStorage.clear();
       if (user) {
-        const results = await Promise.all([
-          supabase.from('semesters').delete().eq('user_id', user.id),
-          supabase.from('timetable_entries').delete().eq('user_id', user.id),
-          supabase.from('tasks').delete().eq('user_id', user.id),
-          supabase.from('study_hours').delete().eq('user_id', user.id),
-          supabase.from('profiles').upsert({ id: user.id }, { onConflict: 'id' }),
-        ]);
-        const failed = results.find(r => r.error);
-        if (failed) throw new Error(failed.error.message || 'Failed to clear data from database.');
+        // Delete every academic table explicitly, in dependency order, scoped by
+        // user_id — robust regardless of FK cascade config. Sequential (not
+        // Promise.all) so a child never races its parent's cascade.
+        const tables = ['grades', 'categories', 'tasks', 'timetable_entries', 'study_hours', 'courses', 'semesters'];
+        for (const table of tables) {
+          const { error } = await supabase.from(table).delete().eq('user_id', user.id);
+          if (error) throw new Error(`Failed to clear ${table}: ${error.message}`);
+        }
+        // Keep the user's identity (name / school / type / theme) — just detach
+        // the now-deleted active semester so the app reloads clean.
+        const { error: pErr } = await supabase
+          .from('profiles')
+          .update({ active_semester_id: null })
+          .eq('id', user.id);
+        if (pErr) throw new Error(pErr.message);
       }
+      // Clear ONLY the app cache — never the supabase auth token (sb-*), or the
+      // reload would sign the user out (that was the "doesn't work" bug).
+      Object.keys(localStorage)
+        .filter((k) => k.startsWith('ultragrade_'))
+        .forEach((k) => localStorage.removeItem(k));
       window.location.reload();
     } catch (err) {
       setClearError(err.message || 'Something went wrong. Please try again.');
+    }
+  };
+
+  const deleteAccount = async () => {
+    setDeleteError(null);
+    setDeleting(true);
+    try {
+      // Fresh token (context copy may be stale) for the JWT-gated endpoint.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error('Your session expired — please sign in again.');
+      const res = await fetch(`${API_BASE_URL}/api/account`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.success) {
+        throw new Error(body.error || 'Failed to delete account.');
+      }
+      // Account (and all data) gone — clear local cache and return to login.
+      Object.keys(localStorage)
+        .filter((k) => k.startsWith('ultragrade_'))
+        .forEach((k) => localStorage.removeItem(k));
+      await signOut();
+      window.location.assign('/login');
+    } catch (err) {
+      setDeleteError(err.message || 'Something went wrong. Please try again.');
+      setDeleting(false);
     }
   };
 
@@ -144,16 +195,29 @@ export default function Settings() {
                 <h2 className="font-semibold flex items-center gap-2"><Palette size={16} className="text-primary" /> Display</h2>
                 <div className="form-control">
                   <label className="label py-1"><span className="label-text">Theme</span></label>
-                  <div className="flex gap-3">
-                    {['ultragrade-dark', 'ultragrade-light'].map(t => (
-                      <label key={t} className="flex items-center gap-2 cursor-pointer">
-                        <input type="radio" {...register('theme')} value={t} className="radio radio-primary radio-sm" />
-                        <span className="text-sm flex items-center gap-1">
-                          {t === 'ultragrade-dark' ? <Moon size={14} /> : <Sun size={14} />}
-                          {t === 'ultragrade-dark' ? 'Dark' : 'Light'}
-                        </span>
-                      </label>
-                    ))}
+                  <input type="hidden" {...register('theme')} />
+                  <div className="grid grid-cols-2 gap-2">
+                    {THEMES.map(t => {
+                      const { label, hint, Icon } = THEME_META[t];
+                      const active = currentTheme === t;
+                      return (
+                        <button
+                          type="button"
+                          key={t}
+                          onClick={(e) => pickTheme(t, e)}
+                          aria-pressed={active}
+                          className={`flex flex-col items-center gap-1.5 rounded-2xl border px-2 py-3 transition-all ${
+                            active
+                              ? 'border-primary bg-primary/12 text-primary shadow-bloom'
+                              : 'border-base-300 text-base-content/60 hover:border-base-content/25 hover:bg-base-content/5'
+                          }`}
+                        >
+                          <Icon size={17} />
+                          <span className="text-xs font-semibold">{label}</span>
+                          <span className="text-[10px] text-base-content/40 text-center leading-tight">{hint}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
                 <div className="form-control">
@@ -175,21 +239,40 @@ export default function Settings() {
             </div>
 
             <div className="glass-card !border-error/30">
-              <div className="card-body p-4 space-y-2">
+              <div className="card-body p-4 space-y-3">
                 <h2 className="font-semibold text-error">Danger Zone</h2>
-                <p className="text-sm text-base-content/60">Clearing all data will remove every course, timetable entry, task, and semester. This cannot be undone.</p>
-                <button type="button" onClick={() => setClearConfirm(true)} className="btn btn-error btn-outline btn-sm w-fit">
-                  Clear All Data
-                </button>
-                {clearError && (
-                  <div className="alert alert-error text-sm rounded-2xl">
-                    <span>{clearError}</span>
-                  </div>
-                )}
+
+                <div className="space-y-1.5">
+                  <p className="text-sm text-base-content/60">Clear all academic data — removes every course, grade, timetable entry, task, and semester. Your account and profile stay. This cannot be undone.</p>
+                  <button type="button" onClick={() => setClearConfirm(true)} className="btn btn-error btn-outline btn-sm w-fit">
+                    Clear All Data
+                  </button>
+                  {clearError && (
+                    <div className="alert alert-error text-sm rounded-2xl">
+                      <span>{clearError}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-t border-error/20 pt-3 space-y-1.5">
+                  <p className="text-sm text-base-content/60">Delete your account permanently — removes your account and all associated data. This cannot be undone.</p>
+                  <button type="button" onClick={() => { setDeleteError(null); setDeleteConfirm(true); }} className="btn btn-error btn-sm w-fit">
+                    Delete Account
+                  </button>
+                  {deleteError && (
+                    <div className="alert alert-error text-sm rounded-2xl">
+                      <span>{deleteError}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Calendar sync uses its own context actions (not the form) — its
+            buttons are type="button" so they never submit this form. */}
+        <CalendarSyncCard />
 
         <div className="flex justify-end">
           <button type="submit" className="btn btn-primary">Save Settings</button>
@@ -204,6 +287,16 @@ export default function Settings() {
         message="This will permanently delete all your semesters, courses, grades, timetable entries, and tasks. This action cannot be undone."
         danger={true}
         confirmLabel="Yes, Delete Everything"
+      />
+
+      <ConfirmDialog
+        isOpen={deleteConfirm}
+        onClose={() => setDeleteConfirm(false)}
+        onConfirm={deleteAccount}
+        title="Delete Account?"
+        message="This permanently deletes your account and everything in it — courses, grades, tasks, timetable, and settings. You will be signed out and cannot undo this."
+        danger={true}
+        confirmLabel={deleting ? 'Deleting…' : 'Yes, Delete My Account'}
       />
       </div>
     </div>

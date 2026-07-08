@@ -1,5 +1,5 @@
 import { useApp } from '../../context/AppContext';
-import { calcSemesterGPA, calcCourseGrade } from '../../utils/gradeCalculations';
+import { calcSemesterGPA, calcCourseGrade, gradeHex } from '../../utils/gradeCalculations';
 import { TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -82,8 +82,8 @@ export default function GPASummaryWidget() {
                       className="w-full rounded-t-md transition-all duration-500"
                       style={{
                         height: `${Math.max(Math.min(c.grade, 100), 6)}%`,
-                        backgroundColor: c.color,
-                        opacity: 0.85
+                        backgroundColor: gradeHex(c.grade),
+                        opacity: 0.9
                       }}
                     />
                   </div>

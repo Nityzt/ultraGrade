@@ -1,5 +1,6 @@
-import { useState, useRef } from 'react';
-import { Upload, CheckCircle, AlertCircle, Loader, FileText } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { Upload, CheckCircle, AlertCircle, FileText, ScanLine, ListChecks, CalendarClock, Sparkles } from 'lucide-react';
 import Modal from '../ui/Modal.jsx';
 import axios from 'axios';
 import { useApp } from '../../context/AppContext.jsx';
@@ -81,12 +82,7 @@ export default function OutlineImportModal({ isOpen, onClose }) {
         </div>
       )}
 
-      {status === 'loading' && (
-        <div className="flex flex-col items-center gap-4 py-8">
-          <Loader size={32} className="text-primary animate-spin" />
-          <p className="text-base-content/60">Analyzing your course outline...</p>
-        </div>
-      )}
+      {status === 'loading' && <AnalyzingLoader />}
 
       {status === 'error' && (
         <div className="flex flex-col items-center gap-4 py-4">
@@ -140,5 +136,75 @@ export default function OutlineImportModal({ isOpen, onClose }) {
         </div>
       )}
     </Modal>
+  );
+}
+
+/* Premium multi-step "analyzing" indicator. We don't get real progress from the
+   single Gemini call, so we advance through the pipeline stages on a timer and
+   hold on the last one until the response lands — it reads as genuine work and
+   sets expectations for what's being extracted. */
+const ANALYZE_STEPS = [
+  { icon: ScanLine, label: 'Reading your outline' },
+  { icon: FileText, label: 'Extracting course details' },
+  { icon: ListChecks, label: 'Finding assessment weights' },
+  { icon: CalendarClock, label: 'Resolving deadline dates' },
+];
+
+function AnalyzingLoader() {
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setActive((i) => Math.min(i + 1, ANALYZE_STEPS.length - 1));
+    }, 1400);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div className="flex flex-col items-center gap-6 py-6">
+      {/* Pulsing brand orb with an orbiting sparkle */}
+      <div className="relative w-16 h-16">
+        <motion.div
+          className="absolute inset-0 rounded-3xl bg-primary/15 border border-primary/25"
+          animate={{ scale: [1, 1.08, 1], opacity: [0.7, 1, 0.7] }}
+          transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Sparkles size={26} className="text-primary" />
+        </div>
+      </div>
+
+      <div className="w-full max-w-xs space-y-2.5">
+        {ANALYZE_STEPS.map((step, i) => {
+          const Icon = step.icon;
+          const done = i < active;
+          const current = i === active;
+          return (
+            <motion.div
+              key={step.label}
+              className="flex items-center gap-3"
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: done || current ? 1 : 0.35, x: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                done ? 'bg-success/15 text-success'
+                  : current ? 'bg-primary/15 text-primary'
+                  : 'bg-base-300/40 text-base-content/40'
+              }`}>
+                {done ? <CheckCircle size={15} />
+                  : current ? <Icon size={14} className="animate-pulse-soft" />
+                  : <Icon size={14} />}
+              </div>
+              <span className={`text-sm ${current ? 'font-medium text-base-content' : 'text-base-content/60'}`}>
+                {step.label}
+                {current && <span className="loading loading-dots loading-xs ml-1.5 align-middle" />}
+              </span>
+            </motion.div>
+          );
+        })}
+      </div>
+      <p className="text-xs text-base-content/40">This usually takes a few seconds…</p>
+    </div>
   );
 }

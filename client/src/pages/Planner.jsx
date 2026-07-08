@@ -87,14 +87,6 @@ export default function Planner() {
         </div>
       </div>
 
-      {/* FAB on mobile */}
-      <button
-        onClick={() => { setEditingTask(null); setModal(true); }}
-        className="fixed bottom-20 right-4 btn btn-primary btn-circle shadow-lg z-30 md:hidden"
-      >
-        <Plus size={24} />
-      </button>
-
       <AddTaskModal
         isOpen={modal}
         onClose={() => { setModal(false); setEditingTask(null); }}

@@ -113,10 +113,14 @@ export default function InfoSection({ title, data, onRefresh, loading, icon: Ico
 
               {data && !data.error && (
                 <div className="flex flex-wrap items-center gap-3 mt-4 pt-3 border-t border-base-300 text-xs text-base-content/40">
-                  {data.fetchedAt && (
-                    <span className="flex items-center gap-1">
+                  {data.fromFallback ? (
+                    <span className="flex items-center gap-1" title="Curated guidance — kept current manually; live gov data loads when reachable">
+                      <Clock size={11} /> Curated info
+                    </span>
+                  ) : data.fetchedAt && (
+                    <span className="flex items-center gap-1" title="Fetched from the official source">
                       <Clock size={11} />
-                      {new Date(data.fetchedAt).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      Verified {new Date(data.fetchedAt).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}
                     </span>
                   )}
                   {data.sourceUrl && (

@@ -9,12 +9,24 @@ import CourseStatusWidget from '../components/dashboard/CourseStatusWidget';
 import Modal from '../components/ui/Modal';
 import { useForm } from 'react-hook-form';
 import { PlusCircle, GraduationCap, AlertCircle } from 'lucide-react';
+import { inferSemesterDates } from '../utils/dateHelpers';
 
 function AddSemesterModal({ open, onClose }) {
   const { addSemester, setActiveSemester } = useApp();
-  const { register, handleSubmit, reset, formState: { errors } } = useForm({
+  const { register, handleSubmit, reset, setValue, getValues, formState: { errors } } = useForm({
     defaultValues: { name: '', startDate: '', endDate: '' }
   });
+
+  const nameReg = register('name', { required: 'Required' });
+  // Smart-fill: "Fall 2025" → Sep 1–Dec 31, etc. Only when dates are still empty
+  // so we never clobber a manual edit.
+  const handleNameChange = (e) => {
+    const inferred = inferSemesterDates(e.target.value);
+    if (inferred && !getValues('startDate') && !getValues('endDate')) {
+      setValue('startDate', inferred.startDate);
+      setValue('endDate', inferred.endDate);
+    }
+  };
 
   const onSubmit = (data) => {
     const sem = addSemester(data);
@@ -29,7 +41,8 @@ function AddSemesterModal({ open, onClose }) {
         <div className="form-control">
           <label className="label"><span className="label-text">Semester Name</span></label>
           <input
-            {...register('name', { required: 'Required' })}
+            {...nameReg}
+            onChange={(e) => { nameReg.onChange(e); handleNameChange(e); }}
             className="input input-bordered w-full"
             placeholder="e.g. Fall 2025"
           />

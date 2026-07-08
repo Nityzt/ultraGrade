@@ -4,6 +4,37 @@ export function toDateStr(date) {
   return date.toISOString().split('T')[0]; // YYYY-MM-DD
 }
 
+/**
+ * Infer start/end dates from a semester name like "Fall 2022".
+ *   Fall/Autumn → Sep 1 – Dec 31
+ *   Winter      → Jan 1 – Apr 30
+ *   Spring/Summer → May 1 – Aug 31
+ * Returns { startDate, endDate } (YYYY-MM-DD) or null when term/year is unclear.
+ */
+export function inferSemesterDates(name) {
+  if (!name) return null;
+  const lower = name.toLowerCase();
+  const yearMatch = lower.match(/\b(20\d{2})\b/);
+  if (!yearMatch) return null;
+  const year = parseInt(yearMatch[1], 10);
+
+  let term = null;
+  if (/\b(fall|autumn)\b/.test(lower)) term = 'fall';
+  else if (/\bwinter\b/.test(lower)) term = 'winter';
+  else if (/\bspring\b/.test(lower)) term = 'spring';
+  else if (/\bsummer\b/.test(lower)) term = 'summer';
+  if (!term) return null;
+
+  const ranges = {
+    fall:   [`${year}-09-01`, `${year}-12-31`],
+    winter: [`${year}-01-01`, `${year}-04-30`],
+    spring: [`${year}-05-01`, `${year}-08-31`],
+    summer: [`${year}-05-01`, `${year}-08-31`],
+  };
+  const [startDate, endDate] = ranges[term];
+  return { startDate, endDate };
+}
+
 export function today() {
   return toDateStr(new Date());
 }
