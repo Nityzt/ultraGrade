@@ -206,9 +206,25 @@ body {
 
 .font-mono { font-family: 'JetBrains Mono', monospace; }
 
+/* Expands a small visual control's hit area to the ~44px iOS minimum without
+   growing it visually — an invisible ::before overlay, not a bigger icon. */
+.hit-44 {
+  position: relative;
+}
+.hit-44::before {
+  content: '';
+  position: absolute;
+  inset: 50%;
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  transform: translate(-50%, -50%);
+}
+
 /* iOS safe area */
 .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
 .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+.pl-safe { padding-left: env(safe-area-inset-left, 0px); }
+.pr-safe { padding-right: env(safe-area-inset-right, 0px); }
 
 /* ── Native-app feel + mobile performance ───────────────────────────────────
    The web build leans on stacked backdrop-blur + a fixed-attachment body glow,

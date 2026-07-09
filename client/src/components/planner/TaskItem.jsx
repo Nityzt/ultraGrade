@@ -44,8 +44,8 @@ export default function TaskItem({ task, onEdit, onDelete }) {
         <div className="flex items-start justify-between gap-2">
           <p className={`text-sm font-medium text-base-content ${task.completed ? 'line-through opacity-60' : ''}`}>{task.title}</p>
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-            <button onClick={onEdit} className="btn btn-ghost btn-xs btn-circle" aria-label={`Edit task "${task.title}"`}><Pencil size={12} /></button>
-            <button onClick={onDelete} className="btn btn-ghost btn-xs btn-circle text-error" aria-label={`Delete task "${task.title}"`}><Trash2 size={12} /></button>
+            <button onClick={onEdit} className="btn btn-ghost btn-xs btn-circle hit-44" aria-label={`Edit task "${task.title}"`}><Pencil size={12} /></button>
+            <button onClick={onDelete} className="btn btn-ghost btn-xs btn-circle text-error hit-44" aria-label={`Delete task "${task.title}"`}><Trash2 size={12} /></button>
           </div>
         </div>
 

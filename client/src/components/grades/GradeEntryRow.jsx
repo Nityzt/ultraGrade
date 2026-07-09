@@ -17,8 +17,8 @@ export default function GradeEntryRow({ grade, onEdit, onDelete }) {
           {grade.score}/{grade.maxScore} ({pct.toFixed(1)}%)
         </span>
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onClick={onEdit} className="btn btn-ghost btn-xs btn-circle"><Pencil size={12} /></button>
-          <button onClick={onDelete} className="btn btn-ghost btn-xs btn-circle text-error"><Trash2 size={12} /></button>
+          <button onClick={onEdit} className="btn btn-ghost btn-xs btn-circle hit-44"><Pencil size={12} /></button>
+          <button onClick={onDelete} className="btn btn-ghost btn-xs btn-circle text-error hit-44"><Trash2 size={12} /></button>
         </div>
       </div>
     </div>
