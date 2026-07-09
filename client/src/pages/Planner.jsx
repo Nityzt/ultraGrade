@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Plus, ClipboardList } from 'lucide-react';
 import Header from '../components/layout/Header.jsx';
 import TaskList from '../components/planner/TaskList.jsx';
@@ -10,10 +11,22 @@ import { useApp } from '../context/AppContext.jsx';
 
 export default function Planner() {
   const { activeTasks, deleteTask } = useApp();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [modal, setModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [selectedDay, setSelectedDay] = useState(null);
   const [filter, setFilter] = useState({ type: 'all', status: 'active', search: '', courseId: '' });
+
+  // Command-palette trigger: ?new=task opens the add-task modal, then the
+  // param is cleared so a refresh/back-navigation doesn't re-fire it.
+  useEffect(() => {
+    if (searchParams.get('new') === 'task') {
+      setEditingTask(null);
+      setModal(true);
+      setSearchParams((prev) => { prev.delete('new'); return prev; }, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   let filtered = activeTasks;
   if (filter.type !== 'all') filtered = filtered.filter(t => t.type === filter.type);

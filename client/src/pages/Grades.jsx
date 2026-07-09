@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Plus, Download, GraduationCap } from 'lucide-react';
 import Header from '../components/layout/Header.jsx';
 import CourseCard from '../components/grades/CourseCard.jsx';
@@ -11,11 +12,11 @@ import { useApp } from '../context/AppContext.jsx';
 import { calcCourseGrade } from '../utils/gradeCalculations.js';
 import { getGradeInfo } from '../data/gpaScales.js';
 import { calcSemesterGPA } from '../utils/gradeCalculations.js';
-import { useToast } from '../components/ui/Toast.jsx';
+import { toast } from 'sonner';
 
 export default function Grades() {
   const { activeCourses, activeSemester, settings } = useApp();
-  const toast = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [courseModal, setCourseModal] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
   const [outlineModal, setOutlineModal] = useState(false);
@@ -70,6 +71,21 @@ export default function Grades() {
       setExporting(false);
     }
   };
+
+  // Command-palette triggers (?new=course opens the add-course modal,
+  // ?export=1 kicks off the PDF export) — then clear the param so a refresh
+  // or back-navigation doesn't re-fire it.
+  useEffect(() => {
+    if (searchParams.get('new') === 'course') {
+      setEditingCourse(null);
+      setCourseModal(true);
+      setSearchParams((prev) => { prev.delete('new'); return prev; }, { replace: true });
+    } else if (searchParams.get('export') === '1') {
+      exportPDF();
+      setSearchParams((prev) => { prev.delete('export'); return prev; }, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   return (
     <div className="flex flex-col h-full">

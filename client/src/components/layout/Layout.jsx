@@ -5,7 +5,7 @@ import BottomNav from './BottomNav.jsx';
 import OfflineIndicator from '../ui/OfflineIndicator.jsx';
 import InstallPrompt from '../pwa/InstallPrompt.jsx';
 import SyncErrorBridge from './SyncErrorBridge.jsx';
-import QuickAddBar from '../quickadd/QuickAddBar.jsx';
+import CommandPalette from '../quickadd/CommandPalette.jsx';
 import { useCardSpotlight } from '../../hooks/useCardSpotlight.js';
 
 export default function Layout() {
@@ -16,7 +16,7 @@ export default function Layout() {
       <Sidebar />
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         <OfflineIndicator />
-        <main id="main" tabIndex={-1} className="flex-1 overflow-y-auto pb-28 md:pb-0 focus:outline-none">
+        <main id="main" tabIndex={-1} className="flex-1 overflow-y-auto pb-28 md:pb-0 pl-safe pr-safe focus:outline-none">
           {/* Inner boundary: a route chunk loading swaps only the content area,
               keeping the sidebar/bottom-nav chrome mounted (no shell flash). */}
           <Suspense
@@ -31,7 +31,7 @@ export default function Layout() {
         </main>
       </div>
       <BottomNav />
-      <QuickAddBar />
+      <CommandPalette />
       <InstallPrompt />
       <SyncErrorBridge />
     </div>
