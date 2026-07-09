@@ -4,7 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { MotionConfig } from 'framer-motion';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { AppProvider } from './context/AppContext';
-import { ToastProvider } from './components/ui/Toast.jsx';
+import AppToaster from './components/ui/AppToaster.jsx';
 import App from './App';
 import './index.css';
 
@@ -27,9 +27,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <AuthProvider>
           <AuthLoadingGate>
             <AppProvider>
-              <ToastProvider>
-                <App />
-              </ToastProvider>
+              <AppToaster />
+              <App />
             </AppProvider>
           </AuthLoadingGate>
         </AuthProvider>

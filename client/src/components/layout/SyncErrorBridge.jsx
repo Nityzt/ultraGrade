@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext.jsx';
-import { useToast } from '../ui/Toast.jsx';
+import { toast } from 'sonner';
 
 /**
  * Bridges AppContext's background-sync state to the toast system so failures
@@ -9,7 +9,6 @@ import { useToast } from '../ui/Toast.jsx';
  */
 export default function SyncErrorBridge() {
   const { syncError } = useApp();
-  const toast = useToast();
   const last = useRef(null);
 
   useEffect(() => {

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { CalendarClock, Copy, Check, RefreshCw, Power, Link2, Download } from 'lucide-react';
 import { useApp } from '../../context/AppContext.jsx';
-import { useToast } from '../ui/Toast.jsx';
+import { toast } from 'sonner';
 import {
   generateIcsToken, icsFeedUrl, connectGoogleCalendar,
   consumePendingImport, getProviderToken, importGoogleEvents,
@@ -20,7 +20,6 @@ import {
  */
 export default function CalendarSyncCard() {
   const { settings, setCalendarSync, activeSemester, addTask, addTimetableEntry } = useApp();
-  const toast = useToast();
   const [copied, setCopied] = useState(false);
   const [importing, setImporting] = useState(false);
   const attempted = useRef(false);
