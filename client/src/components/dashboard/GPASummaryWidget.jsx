@@ -2,6 +2,7 @@ import { useApp } from '../../context/AppContext';
 import { calcSemesterGPA, calcCourseGrade, gradeHex } from '../../utils/gradeCalculations';
 import { TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import AnimatedNumber from '../ui/AnimatedNumber.jsx';
 
 function standingLabel(pct) {
   if (pct >= 90) return 'Top standing';
@@ -49,7 +50,9 @@ export default function GPASummaryWidget() {
         <div className="relative z-10 flex flex-col flex-1">
           <div className="flex items-baseline gap-2">
             <span className={`font-display font-bold text-6xl md:text-7xl leading-none tabular ${hasGpa ? 'text-primary glow-sage' : 'text-base-content/20'}`}>
-              {hasGpa ? gpa.toFixed(2) : '0.00'}
+              {hasGpa
+                ? <AnimatedNumber value={gpa} format={{ minimumFractionDigits: 2, maximumFractionDigits: 2 }} />
+                : '0.00'}
             </span>
             <span className="text-sm text-base-content/40 font-medium">/ {maxGpa.toFixed(1)}</span>
           </div>

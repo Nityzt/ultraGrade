@@ -5,6 +5,7 @@ import { useApp } from '../../context/AppContext.jsx';
 import { useThemeTransition } from '../../hooks/useThemeTransition.js';
 import { calcSemesterGPA } from '../../utils/gradeCalculations.js';
 import UserMenu from './UserMenu.jsx';
+import AnimatedNumber from '../ui/AnimatedNumber.jsx';
 
 function NavItem({ to, icon: Icon, label }) {
   return (
@@ -129,7 +130,9 @@ export default function Sidebar() {
       {gpa !== null && (
         <div className="mx-1 mb-4 px-3.5 py-2.5 rounded-2xl bg-primary/8 border border-primary/20 flex items-center justify-between">
           <span className="text-xs text-base-content/50">Semester GPA</span>
-          <span className="font-display font-bold text-primary text-base tabular glow-sage">{gpa.toFixed(2)}</span>
+          <span className="font-display font-bold text-primary text-base tabular glow-sage">
+            <AnimatedNumber value={gpa} format={{ minimumFractionDigits: 2, maximumFractionDigits: 2 }} />
+          </span>
         </div>
       )}
 

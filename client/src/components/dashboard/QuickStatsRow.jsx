@@ -2,6 +2,7 @@ import { useApp } from '../../context/AppContext';
 import { today } from '../../utils/dateHelpers';
 import { BookOpen, CheckSquare, Clock, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import AnimatedNumber from '../ui/AnimatedNumber.jsx';
 
 export default function QuickStatsRow() {
   const { activeCourses, activeTasks, activeTimetable } = useApp();
@@ -34,7 +35,9 @@ export default function QuickStatsRow() {
             <Icon size={19} />
           </div>
           <div className="min-w-0">
-            <div className={`text-2xl font-display font-bold tabular leading-none ${val}`}>{value}</div>
+            <div className={`text-2xl font-display font-bold tabular leading-none ${val}`}>
+              {typeof value === 'number' ? <AnimatedNumber value={value} /> : value}
+            </div>
             <div className="text-[11px] text-base-content/45 mt-1 truncate">{label}</div>
           </div>
         </Link>

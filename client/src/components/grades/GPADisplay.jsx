@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { calcCourseGrade, calcSemesterGPA, gradeColorClass } from '../../utils/gradeCalculations.js';
 import { getGradeInfo, GPA_SCALES } from '../../data/gpaScales.js';
 import { useApp } from '../../context/AppContext.jsx';
+import AnimatedNumber from '../ui/AnimatedNumber.jsx';
 
 function SemesterBar({ semester, courses, scaleKey, maxGPA }) {
   const semCourses = courses.filter(c => c.semesterId === semester.id);
@@ -42,7 +43,9 @@ export default function GPADisplay({ courses }) {
         <div className="flex items-end gap-4">
           <div>
             <p className="text-xs text-base-content/50 mb-1">Semester GPA</p>
-            <div className="font-mono font-bold text-5xl text-primary">{gpa.toFixed(2)}</div>
+            <div className="font-mono font-bold text-5xl text-primary">
+              <AnimatedNumber value={gpa} format={{ minimumFractionDigits: 2, maximumFractionDigits: 2 }} />
+            </div>
           </div>
           <div className="mb-1">
             <span className="badge badge-lg">{scale.name}</span>
