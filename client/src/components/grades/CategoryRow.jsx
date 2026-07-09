@@ -1,5 +1,8 @@
 import { useState, useRef } from 'react';
-import { ChevronDown, ChevronRight, Plus, Pencil, Trash2 } from 'lucide-react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { useReducedMotion } from 'framer-motion';
+import { ChevronDown, ChevronRight, GripVertical, Plus, Pencil, Trash2 } from 'lucide-react';
 import GradeEntryRow from './GradeEntryRow.jsx';
 import AddGradeModal from './AddGradeModal.jsx';
 import { calcCategoryGrade, gradeColorClass } from '../../utils/gradeCalculations.js';
@@ -81,19 +84,37 @@ export default function CategoryRow({ category, courseId, onEdit, onDelete }) {
   const [gradeModal, setGradeModal] = useState(false);
   const [editingGrade, setEditingGrade] = useState(null);
   const { deleteGrade } = useApp();
+  const reduceMotion = useReducedMotion();
+
+  const {
+    attributes, listeners, setNodeRef, transform, transition, isDragging,
+  } = useSortable({ id: category.id, transition: reduceMotion ? null : undefined });
 
   const earned = calcCategoryGrade(category);
   const colorClass = gradeColorClass(earned);
   const grades = category.grades || [];
 
   return (
-    <div className="border border-base-300 rounded-2xl overflow-hidden">
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`border border-base-300 rounded-2xl overflow-hidden ${isDragging ? 'relative z-10 opacity-60' : ''}`}
+    >
       {/* Category header */}
       <div
         className="flex items-center justify-between px-3 py-2.5 bg-base-300/20 cursor-pointer hover:bg-base-300/40 transition-colors"
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center gap-2 min-w-0">
+          <button
+            {...attributes}
+            {...listeners}
+            onClick={(e) => e.stopPropagation()}
+            className="shrink-0 -ml-1 p-0.5 rounded text-base-content/25 hover:text-base-content/60 cursor-grab active:cursor-grabbing touch-none"
+            aria-label={`Reorder ${category.name || 'category'}`}
+          >
+            <GripVertical size={13} />
+          </button>
           {expanded
             ? <ChevronDown size={13} className="text-base-content/40 shrink-0" />
             : <ChevronRight size={13} className="text-base-content/40 shrink-0" />
@@ -119,8 +140,8 @@ export default function CategoryRow({ category, courseId, onEdit, onDelete }) {
           >
             <Plus size={11} /> Grade
           </button>
-          <button onClick={onEdit} className="btn btn-ghost btn-xs btn-circle"><Pencil size={11} /></button>
-          <button onClick={onDelete} className="btn btn-ghost btn-xs btn-circle text-error/50 hover:text-error"><Trash2 size={11} /></button>
+          <button onClick={onEdit} className="btn btn-ghost btn-xs btn-circle hit-44"><Pencil size={11} /></button>
+          <button onClick={onDelete} className="btn btn-ghost btn-xs btn-circle text-error/50 hover:text-error hit-44"><Trash2 size={11} /></button>
         </div>
       </div>
 

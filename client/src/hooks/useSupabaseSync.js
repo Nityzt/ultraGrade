@@ -124,6 +124,7 @@ export function updateCategory(catId, data, userId) {
   if ('name' in data)       row.name        = data.name;
   if ('weight' in data)     row.weight      = data.weight;
   if ('dropLowest' in data) row.drop_lowest = data.dropLowest;
+  if ('position' in data)   row.position    = data.position;
   if (!Object.keys(row).length) return Promise.resolve({ error: null });
   return supabase.from('categories').update(row).eq('id', catId).eq('user_id', userId);
 }
