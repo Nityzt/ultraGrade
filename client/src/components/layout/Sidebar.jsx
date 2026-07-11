@@ -12,7 +12,7 @@ function NavItem({ to, icon: Icon, label }) {
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `group flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium transition-all duration-200 ${
+        `group pressable flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium transition-colors duration-200 ${
           isActive
             ? 'bg-primary/12 text-primary border-l-2 border-primary pl-[10px] translate-x-0.5'
             : 'text-base-content/55 hover:bg-base-content/5 hover:text-base-content'

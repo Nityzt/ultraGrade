@@ -1,13 +1,15 @@
 import { NavLink } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { LayoutDashboard, GraduationCap, Calendar, ClipboardList, Globe, BookOpen, Settings as SettingsIcon } from 'lucide-react';
 import { useApp } from '../../context/AppContext.jsx';
+import { SPRING } from '../../lib/motion.js';
 
 function NavItem({ to, icon: Icon, label }) {
   return (
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `group relative flex flex-col items-center justify-center flex-1 h-full transition-colors duration-200 ${
+        `group pressable relative flex flex-col items-center justify-center flex-1 h-full transition-colors duration-200 ${
           isActive ? 'text-primary' : 'text-base-content/45 hover:text-base-content/80'
         }`
       }
@@ -15,14 +17,20 @@ function NavItem({ to, icon: Icon, label }) {
       {({ isActive }) => (
         <>
           {isActive && (
-            <span className="absolute top-0 w-8 h-1 rounded-b-full bg-primary shadow-bloom" />
+            // The pill morphs between tabs — an interruptible spring. layoutId
+            // shares one element across NavItems, so framer animates position.
+            <motion.span
+              layoutId="bottomnav-active"
+              transition={SPRING}
+              className="absolute top-0 w-8 h-1 rounded-b-full bg-primary shadow-bloom"
+            />
           )}
           <Icon
             size={19}
             className="mb-1 transition-transform duration-200 group-active:scale-90"
             style={isActive ? { filter: 'drop-shadow(0 0 6px hsl(var(--p) / 0.55))' } : undefined}
           />
-          <span className="text-[8px] font-bold tracking-wide uppercase">{label}</span>
+          <span className="text-[10px] font-semibold tracking-wide">{label}</span>
         </>
       )}
     </NavLink>
