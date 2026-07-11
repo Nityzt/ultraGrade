@@ -7,7 +7,7 @@ import { GPA_SCALES } from '../data/gpaScales';
 import { Palette, User, Globe, Book, Bell } from 'lucide-react';
 import { useThemeTransition, THEMES, THEME_META } from '../hooks/useThemeTransition.js';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
-import PageHeader from '../components/ui/PageHeader';
+import Header from '../components/layout/Header.jsx';
 import CalendarSyncCard from '../components/settings/CalendarSyncCard';
 import { supabase } from '../lib/supabase.js';
 import { API_BASE_URL } from '../lib/apiBase.js';
@@ -115,32 +115,33 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-full flex flex-col p-4 md:p-6">
+    <div className="min-h-full flex flex-col">
+      <Header title="Settings" icon={Palette} />
+      <div className="flex-1 flex flex-col p-4 md:p-6">
       {/* m-auto centers this block when it's shorter than the viewport, and collapses to top-aligned when content overflows — so leftover space is never dumped as a slab below the content */}
       <div className="m-auto w-full max-w-5xl space-y-4">
-      <PageHeader title="Settings" icon={Palette} />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
           {/* Left column: Profile + School */}
-          <div className="space-y-4">
+          <div className="space-y-4 animate-fade-up">
             {/* Profile */}
             <div className="glass-card">
               <div className="card-body p-4 space-y-3">
                 <h2 className="font-semibold flex items-center gap-2"><User size={16} className="text-primary" /> Profile</h2>
                 <div className="form-control">
                   <label className="label py-1"><span className="label-text">Your Name</span></label>
-                  <input {...register('studentName')} className="input input-bordered input-sm w-full" placeholder="e.g. Alex Kim" />
+                  <input {...register('studentName')} className="input input-bordered w-full" placeholder="e.g. Alex Kim" />
                 </div>
                 <div className="form-control">
                   <label className="label py-1"><span className="label-text">Student Type</span></label>
                   <div className="flex gap-3">
                     <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="radio" {...register('studentType')} value="international" className="radio radio-primary radio-sm" />
+                      <input type="radio" {...register('studentType')} value="international" className="radio radio-primary" />
                       <span className="text-sm">International</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="radio" {...register('studentType')} value="domestic" className="radio radio-primary radio-sm" />
+                      <input type="radio" {...register('studentType')} value="domestic" className="radio radio-primary" />
                       <span className="text-sm">Domestic</span>
                     </label>
                   </div>
@@ -148,7 +149,7 @@ export default function Settings() {
                 {watch('studentType') === 'international' && (
                   <div className="form-control">
                     <label className="label py-1"><span className="label-text">Study Permit Expiry Date</span></label>
-                    <input type="date" {...register('permitExpiryDate')} className="input input-bordered input-sm w-full" />
+                    <input type="date" {...register('permitExpiryDate')} className="input input-bordered w-full" />
                     <label className="label py-1"><span className="label-text-alt text-base-content/50">Used for expiry reminders on the dashboard</span></label>
                   </div>
                 )}
@@ -164,7 +165,7 @@ export default function Settings() {
                   <select
                     {...register('school')}
                     onChange={e => handleSchoolChange(e.target.value)}
-                    className="select select-bordered select-sm w-full"
+                    className="select select-bordered w-full"
                   >
                     <option value="">Select your school</option>
                     {ONTARIO_UNIVERSITIES.map(u => (
@@ -178,7 +179,7 @@ export default function Settings() {
                     <span className="label-text">GPA Scale</span>
                     <span className="label-text-alt text-base-content/50">Auto-selected based on school</span>
                   </label>
-                  <select {...register('gpaScale')} className="select select-bordered select-sm w-full">
+                  <select {...register('gpaScale')} className="select select-bordered w-full">
                     {GPA_SCALE_OPTIONS.map(o => (
                       <option key={o.value} value={o.value}>{o.label}</option>
                     ))}
@@ -189,7 +190,7 @@ export default function Settings() {
           </div>
 
           {/* Right column: Display + Danger Zone (balances height against the left column so the page fits without a blank gap) */}
-          <div className="space-y-4">
+          <div className="space-y-4 animate-fade-up" style={{ animationDelay: '80ms' }}>
             <div className="glass-card">
               <div className="card-body p-4 space-y-3">
                 <h2 className="font-semibold flex items-center gap-2"><Palette size={16} className="text-primary" /> Display</h2>
@@ -222,7 +223,7 @@ export default function Settings() {
                 </div>
                 <div className="form-control">
                   <label className="label py-1"><span className="label-text">Grade Display Format</span></label>
-                  <select {...register('gradeDisplay')} className="select select-bordered select-sm w-full">
+                  <select {...register('gradeDisplay')} className="select select-bordered w-full">
                     <option value="percentage">Percentage only (85%)</option>
                     <option value="letter">Letter grade only (A)</option>
                     <option value="both">Both (A · 85%)</option>
@@ -230,7 +231,7 @@ export default function Settings() {
                 </div>
                 <div className="form-control">
                   <label className="label py-1"><span className="label-text">Week Starts On</span></label>
-                  <select {...register('weekStartsOn', { valueAsNumber: true })} className="select select-bordered select-sm w-full">
+                  <select {...register('weekStartsOn', { valueAsNumber: true })} className="select select-bordered w-full">
                     <option value={0}>Sunday</option>
                     <option value={1}>Monday</option>
                   </select>
@@ -244,7 +245,7 @@ export default function Settings() {
 
                 <div className="space-y-1.5">
                   <p className="text-sm text-base-content/60">Clear all academic data — removes every course, grade, timetable entry, task, and semester. Your account and profile stay. This cannot be undone.</p>
-                  <button type="button" onClick={() => setClearConfirm(true)} className="btn btn-error btn-outline btn-sm w-fit">
+                  <button type="button" onClick={() => setClearConfirm(true)} className="btn btn-error btn-outline pressable w-fit">
                     Clear All Data
                   </button>
                   {clearError && (
@@ -256,7 +257,7 @@ export default function Settings() {
 
                 <div className="border-t border-error/20 pt-3 space-y-1.5">
                   <p className="text-sm text-base-content/60">Delete your account permanently — removes your account and all associated data. This cannot be undone.</p>
-                  <button type="button" onClick={() => { setDeleteError(null); setDeleteConfirm(true); }} className="btn btn-error btn-sm w-fit">
+                  <button type="button" onClick={() => { setDeleteError(null); setDeleteConfirm(true); }} className="btn btn-error pressable w-fit">
                     Delete Account
                   </button>
                   {deleteError && (
@@ -272,10 +273,13 @@ export default function Settings() {
 
         {/* Calendar sync uses its own context actions (not the form) — its
             buttons are type="button" so they never submit this form. */}
-        <CalendarSyncCard />
+        <div className="animate-fade-up" style={{ animationDelay: '160ms' }}>
+          <CalendarSyncCard />
+        </div>
 
-        <div className="flex justify-end">
-          <button type="submit" className="btn btn-primary">Save Settings</button>
+        {/* pr clears the Quick-add FAB (fixed bottom-right) when scrolled to the end */}
+        <div className="flex justify-end pr-20 md:pr-44">
+          <button type="submit" className="btn btn-primary pressable">Save Settings</button>
         </div>
       </form>
 
@@ -298,6 +302,7 @@ export default function Settings() {
         danger={true}
         confirmLabel={deleting ? 'Deleting…' : 'Yes, Delete My Account'}
       />
+      </div>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import ResourceCard from '../components/immigration/ResourceCard';
-import PageHeader from '../components/ui/PageHeader';
+import Header from '../components/layout/Header.jsx';
 import { DollarSign, GraduationCap, Heart, Users, BookOpen, Briefcase } from 'lucide-react';
 
 const RESOURCES = [
@@ -43,16 +43,17 @@ const RESOURCES = [
 
 export default function StudentResources() {
   return (
-    <div className="p-4 md:p-6 space-y-6">
-      <PageHeader
+    <div className="flex flex-col">
+      <Header
         title="Student Resources"
         icon={BookOpen}
-        subtitle="Helpful links and resources for domestic students in Ontario."
+        subtitle="Helpful links for domestic students in Ontario."
       />
 
+      <div className="p-4 md:p-6 space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {RESOURCES.map(({ category, icon: Icon, links }) => (
-          <div key={category} className="space-y-3">
+        {RESOURCES.map(({ category, icon: Icon, links }, i) => (
+          <div key={category} className="space-y-3 animate-fade-up" style={{ animationDelay: `${Math.min(i, 8) * 50}ms` }}>
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <Icon size={18} className="text-primary" /> {category}
             </h2>
@@ -63,6 +64,7 @@ export default function StudentResources() {
             </div>
           </div>
         ))}
+      </div>
       </div>
     </div>
   );

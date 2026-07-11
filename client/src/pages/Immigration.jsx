@@ -4,7 +4,7 @@ import axios from 'axios';
 import InfoSection from '../components/immigration/InfoSection';
 import WorkRightsTable from '../components/immigration/WorkRightsTable';
 import ResourceCard from '../components/immigration/ResourceCard';
-import PageHeader from '../components/ui/PageHeader';
+import Header from '../components/layout/Header.jsx';
 import { API_BASE_URL } from '../lib/apiBase';
 import { Shield, Briefcase, Award, Heart, BookOpen, ExternalLink, AlertTriangle, Globe } from 'lucide-react';
 
@@ -59,25 +59,28 @@ export default function Immigration() {
   }, [fetchAll]);
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
-      <PageHeader
+    <div className="flex flex-col">
+      <Header
         title="Immigration Hub"
         icon={Globe}
-        subtitle="Information for international students studying in Ontario on a study permit."
+        subtitle="Information for international students studying in Ontario."
       />
 
+      <div className="p-4 md:p-6 space-y-6">
       {/* Disclaimer */}
-      <div className="alert alert-warning shadow-sm text-sm">
-        <AlertTriangle size={18} />
-        <div>
-          <div className="font-semibold">Always verify with your school's international student office</div>
-          <div className="opacity-80">This information is fetched live from official government websites but may not reflect your specific situation, school policies, or recent changes.</div>
+      <div className="glass-card p-4 flex items-start gap-3 border-l-4 border-l-warning animate-fade-up">
+        <span className="shrink-0 w-9 h-9 rounded-2xl bg-warning/15 text-warning flex items-center justify-center">
+          <AlertTriangle size={18} />
+        </span>
+        <div className="min-w-0">
+          <div className="font-semibold text-sm">Always verify with your school's international student office</div>
+          <div className="text-xs text-base-content/60 mt-0.5">Information is fetched live from official government sites but may not reflect your specific situation, school policies, or recent changes.</div>
         </div>
       </div>
 
       {/* Permit expiry reminder */}
       {settings.permitExpiryDate && (
-        <div className="glass-card p-4 flex items-center gap-3 text-sm">
+        <div className="glass-card p-4 flex items-center gap-3 text-sm animate-fade-up" style={{ animationDelay: '60ms' }}>
           <Shield size={20} className="text-primary flex-shrink-0" />
           <div>
             <span className="font-medium">Your study permit expiry: </span>
@@ -87,7 +90,7 @@ export default function Immigration() {
       )}
 
       {/* Work rights + Quick links, side by side; columns align to top independently so uneven content never leaves a stretched blank gap */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start animate-fade-up" style={{ animationDelay: '120ms' }}>
         <div className="space-y-3">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <Briefcase size={18} className="text-primary" /> Work Rights at a Glance
@@ -121,6 +124,7 @@ export default function Immigration() {
             />
           ))}
         </div>
+      </div>
       </div>
     </div>
   );
