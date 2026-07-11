@@ -72,7 +72,7 @@ export default function OnboardingWizard() {
   const progress = index / (STEPS.length - 1);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-6">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 pt-safe pb-safe">
       <div className="w-full max-w-lg">
         {/* progress rail */}
         <div className="flex items-center gap-3 mb-6 px-1">
@@ -347,7 +347,7 @@ function TypeCard({ active, onClick, icon: Icon, styles, title, desc }) {
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`text-left rounded-2xl p-4 border-2 transition-all ${
+      className={`pressable text-left rounded-2xl p-4 border-2 transition-colors ${
         active ? styles.activeBorder : 'border-base-300 hover:border-base-content/20'
       }`}
     >
@@ -377,7 +377,7 @@ function Done({ name, school, type, onFinish }) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center text-center">
       <motion.div
-        initial={{ scale: 0.6, opacity: 0 }}
+        initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 220, damping: 16 }}
         className="w-16 h-16 rounded-3xl bg-success/15 border border-success/30 flex items-center justify-center mb-6"

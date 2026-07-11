@@ -137,7 +137,7 @@ export default function WelcomeIntro({ onDone }) {
         onClick={back}
         disabled={index === 0}
         aria-label="Previous"
-        className="w-11 h-11 shrink-0 rounded-full border border-base-300 flex items-center justify-center text-base-content/60 hover:text-base-content hover:bg-base-200/60 transition-all disabled:opacity-0 disabled:pointer-events-none"
+        className="pressable w-11 h-11 shrink-0 rounded-full border border-base-300 flex items-center justify-center text-base-content/60 hover:text-base-content hover:bg-base-200/60 transition-colors disabled:opacity-0 disabled:pointer-events-none"
       >
         <ArrowLeft size={18} />
       </button>
@@ -184,7 +184,7 @@ export default function WelcomeIntro({ onDone }) {
                 className="p-1.5 group"
               >
                 <span
-                  className={`block h-1.5 rounded-full transition-all duration-300 ${
+                  className={`block h-1.5 rounded-full transition-[width,background-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
                     i === index ? 'w-7 bg-primary' : 'w-2 bg-base-content/25 group-hover:bg-base-content/50'
                   }`}
                 />
@@ -277,7 +277,7 @@ export default function WelcomeIntro({ onDone }) {
                         key={choice.value}
                         onClick={(e) => setTheme(choice.value, e)}
                         aria-pressed={active}
-                        className="group relative rounded-2xl p-4 text-left transition-all active:scale-[0.98]"
+                        className="group pressable relative rounded-2xl p-4 text-left transition-[outline,box-shadow] duration-200"
                         style={{
                           background: choice.bg,
                           outline: active ? `2px solid ${choice.fg}` : '1px solid oklch(from var(--bc) l c h / 0.14)',

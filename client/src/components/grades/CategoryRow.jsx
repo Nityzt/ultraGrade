@@ -149,7 +149,7 @@ export default function CategoryRow({ category, courseId, onEdit, onDelete }) {
       {earned !== null && (
         <div className="h-1 bg-base-300/50">
           <div
-            className="h-1 rounded-full transition-all duration-500"
+            className="h-1 rounded-full transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
             style={{ width: `${Math.min(earned, 100)}%`, backgroundColor: gradeBarColor(earned) }}
           />
         </div>

@@ -22,7 +22,10 @@ function useIsMobile() {
 export default function Modal({ isOpen, onClose, title, children, size = 'md' }) {
   const reduce = useReducedMotion();
   const isMobile = useIsMobile();
-  const isSheet = isMobile && !reduce;
+  // Layout must NOT depend on motion preference — a reduced-motion user on
+  // mobile still wants the bottom-sheet layout, just without the slide-in
+  // (it fades instead) and without drag-to-dismiss.
+  const isSheet = isMobile;
   const dialogRef = useRef(null);
   const openerRef = useRef(null);
   const titleId = useId();
@@ -77,7 +80,7 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' })
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: reduce ? 0 : 0.15 }}
-          className={`fixed inset-0 z-50 flex p-4 bg-black/60 backdrop-blur-sm ${isSheet ? 'items-end p-0' : 'items-center justify-center'}`}
+          className={`fixed inset-0 z-50 flex p-4 bg-black/70 backdrop-blur-md ${isSheet ? 'items-end p-0' : 'items-center justify-center'}`}
           onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
         >
           <motion.div
@@ -88,12 +91,12 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' })
             aria-label={title ? undefined : 'Dialog'}
             tabIndex={-1}
             onKeyDown={onKeyDown}
-            drag={isSheet ? 'y' : false}
+            drag={isSheet && !reduce ? 'y' : false}
             dragConstraints={{ top: 0, bottom: 0 }}
             dragElastic={{ top: 0, bottom: 0.4 }}
-            onDragEnd={isSheet ? handleDragEnd : undefined}
+            onDragEnd={isSheet && !reduce ? handleDragEnd : undefined}
             initial={reduce ? { opacity: 0 } : isSheet ? { opacity: 1, y: '100%' } : { opacity: 0, scale: 0.95, y: 8 }}
-            animate={isSheet ? { opacity: 1, y: 0 } : { opacity: 1, scale: 1, y: 0 }}
+            animate={reduce ? { opacity: 1 } : isSheet ? { opacity: 1, y: 0 } : { opacity: 1, scale: 1, y: 0 }}
             exit={reduce ? { opacity: 0 } : isSheet ? { opacity: 1, y: '100%' } : { opacity: 0, scale: 0.95, y: 8 }}
             transition={{ duration: reduce ? 0 : 0.25, ease: [0.22, 1, 0.36, 1] }}
             className={`relative w-full bg-base-200 shadow-2xl border-base-300 flex flex-col focus:outline-none pb-safe ${
@@ -110,14 +113,14 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' })
             {title ? (
               <div className="flex items-center justify-between px-6 py-4 border-b border-base-300 shrink-0">
                 <h3 id={titleId} className="font-semibold text-base-content">{title}</h3>
-                <button onClick={onClose} className="w-11 h-11 -m-2 flex items-center justify-center rounded-full text-base-content/70 hover:bg-base-300 active:scale-95 transition" aria-label="Close">
+                <button onClick={onClose} className="pressable w-11 h-11 -m-2 flex items-center justify-center rounded-full text-base-content/70 hover:bg-base-300 transition-colors" aria-label="Close">
                   <X size={16} />
                 </button>
               </div>
             ) : (
               <button
                 onClick={onClose}
-                className="w-11 h-11 flex items-center justify-center rounded-full text-base-content/70 hover:bg-base-300 active:scale-95 transition absolute top-2 right-2 z-10"
+                className="pressable w-11 h-11 flex items-center justify-center rounded-full text-base-content/70 hover:bg-base-300 transition-colors absolute top-2 right-2 z-10"
                 aria-label="Close"
               >
                 <X size={16} />

@@ -52,9 +52,12 @@ export default function WeeklyGrid({ entries, onClickEntry, onClickSlot }) {
 
   return (
     <div className="overflow-auto">
-      <div className="min-w-[600px]">
+      {/* At sm the layout compresses into ~544px so iPad portrait (768) fits
+          without horizontal scroll; below sm we keep the min-width so it
+          scrolls horizontally instead of squishing to unreadable. */}
+      <div className="min-w-[540px] sm:min-w-0">
         {/* Day headers */}
-        <div className="grid sticky top-0 z-10 bg-base-100 border-b border-base-300" style={{ gridTemplateColumns: '56px repeat(5, 1fr)' }}>
+        <div className="grid sticky top-0 z-10 bg-base-100 border-b border-base-300" style={{ gridTemplateColumns: '40px repeat(5, 1fr)' }}>
           <div />
           {DAYS.map(d => (
             <div key={d} className="py-2 text-center text-xs font-semibold text-base-content/60 border-l border-base-300">{d}</div>
@@ -62,7 +65,7 @@ export default function WeeklyGrid({ entries, onClickEntry, onClickSlot }) {
         </div>
 
         {/* Grid body */}
-        <div className="relative grid" style={{ gridTemplateColumns: '56px repeat(5, 1fr)', gridTemplateRows: `repeat(${TOTAL_SLOTS}, 28px)` }}>
+        <div className="relative grid" style={{ gridTemplateColumns: '40px repeat(5, 1fr)', gridTemplateRows: `repeat(${TOTAL_SLOTS}, 28px)` }}>
           {/* Time labels */}
           {hours.map(hour => (
             <div key={hour}

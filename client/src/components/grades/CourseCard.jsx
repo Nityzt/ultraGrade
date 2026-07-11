@@ -238,20 +238,20 @@ export default function CourseCard({ course, onEdit }) {
 
         {/* Action buttons */}
         <div className="flex items-center gap-1.5 pt-2 border-t border-base-300/40">
-          <button onClick={() => setAddingCat(a => !a)} className={`btn btn-xs btn-ghost gap-1 rounded-full ${addingCat ? 'text-primary' : ''}`}>
+          <button onClick={() => setAddingCat(a => !a)} className={`btn btn-xs btn-ghost pressable gap-1 rounded-full ${addingCat ? 'text-primary' : ''}`}>
             <Plus size={11} /> Category
           </button>
-          <button onClick={() => setNeedModal(true)} className="btn btn-xs btn-ghost gap-1 rounded-full">
+          <button onClick={() => setNeedModal(true)} className="btn btn-xs btn-ghost pressable gap-1 rounded-full">
             <Target size={11} /> Need?
           </button>
-          <button onClick={() => setTimerOpen(true)} className="btn btn-xs btn-ghost gap-1 rounded-full">
+          <button onClick={() => setTimerOpen(true)} className="btn btn-xs btn-ghost pressable gap-1 rounded-full">
             <Timer size={11} /> Study
           </button>
           <div className="ml-auto flex gap-1">
-            <button onClick={onEdit} className="btn btn-xs btn-ghost btn-circle hover:bg-base-300" aria-label={`Edit ${course.code || 'course'}`}>
+            <button onClick={onEdit} className="btn btn-xs btn-ghost btn-circle pressable hit-44 hover:bg-base-300" aria-label={`Edit ${course.code || 'course'}`}>
               <Pencil size={12} />
             </button>
-            <button onClick={() => setConfirmDelete(true)} className="btn btn-xs btn-ghost btn-circle text-error/60 hover:text-error" aria-label={`Delete ${course.code || 'course'}`}>
+            <button onClick={() => setConfirmDelete(true)} className="btn btn-xs btn-ghost btn-circle pressable hit-44 text-error/60 hover:text-error" aria-label={`Delete ${course.code || 'course'}`}>
               <Trash2 size={12} />
             </button>
           </div>

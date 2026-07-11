@@ -123,7 +123,7 @@ export default function CalendarSyncCard() {
               </div>
             </>
           ) : (
-            <button type="button" onClick={enableFeed} className="btn btn-primary btn-sm gap-2 w-fit">
+            <button type="button" onClick={enableFeed} className="btn btn-primary pressable gap-2 w-fit">
               <CalendarClock size={14} /> Enable calendar feed
             </button>
           )}
@@ -143,12 +143,12 @@ export default function CalendarSyncCard() {
             Pull events from your primary Google Calendar into your planner and timetable (one-off events → tasks, recurring → classes).
           </p>
           <div className="flex gap-2">
-            <button type="button" onClick={connect} className="btn btn-outline btn-sm gap-2">
+            <button type="button" onClick={connect} className="btn btn-outline pressable gap-2">
               <Link2 size={14} />
               {settings.calendarConnected ? 'Reconnect' : 'Connect Google Calendar'}
             </button>
             {settings.calendarConnected && (
-              <button type="button" onClick={runImport} disabled={importing} className="btn btn-ghost btn-sm gap-1">
+              <button type="button" onClick={runImport} disabled={importing} className="btn btn-ghost pressable gap-1">
                 <Download size={13} /> {importing ? 'Importing…' : 'Import now'}
               </button>
             )}
