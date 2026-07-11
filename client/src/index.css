@@ -13,6 +13,14 @@
   --grade-blue: #7fb4d6;
   --grade-yellow: #f7bb7e;
   --grade-red: #ffb4ab;
+
+  /* Motion tokens — Apple-fluid house curve, shared between CSS + JS (motion.js).
+     `--ease-out` is the emil-design-eng "premium" ease: strong initial acceleration
+     then a long, calm settle. Durations are the "under 300ms" HIG budget. */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-press: 0.16s;
+  --dur-fast: 0.2s;
+  --dur-base: 0.25s;
 }
 
 html { font-family: 'Hanken Grotesk', 'Inter', system-ui, sans-serif; }
@@ -220,6 +228,52 @@ body {
   transform: translate(-50%, -50%);
 }
 
+/* ── Press feedback — the single biggest "feels alive" win ──────────────────
+   Every tappable UI element should compress slightly on press-down. Works on
+   touch (:active fires on tap) — no hover state required. Uses transform only
+   (composited, 60fps). Overrides:
+   • .btn.pressable disables DaisyUI's own button-pop so we don't double-fire
+   • drag handles opt out (the drag itself owns the transform) */
+.pressable {
+  transition: transform var(--dur-press) var(--ease-out);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.pressable:active { transform: scale(0.97); transition-duration: 0.1s; }
+.btn.pressable { animation: none; }
+[data-dnd-handle].pressable:active { transform: none; }
+
+/* Hide native scrollbars on horizontal chip rows without disabling scroll */
+.scrollbar-hide { scrollbar-width: none; -ms-overflow-style: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
+/* On touch devices there's no hover — anything that only surfaces on
+   :hover is invisible to phone/tablet users. `.touch-visible` forces it on
+   under (hover:none), leaving desktop's hover reveal alone. */
+@media (hover: none) {
+  .touch-visible { opacity: 1 !important; }
+}
+
+/* ── Route-enter reveal — CSS-only, interruptible, freeze-proof ────────────
+   Applied by Layout to a wrapper keyed by pathname. No AnimatePresence — that
+   has a documented freeze history in this codebase. */
+@keyframes page-enter {
+  0%   { opacity: 0; transform: translateY(6px); }
+  /* End at `none`, not translateY(0): a retained transform would make the
+     route wrapper the containing block for any fixed-position descendant. */
+  100% { opacity: 1; transform: none; }
+}
+.page-enter { animation: page-enter var(--dur-base) var(--ease-out) both; }
+
+/* Edge fade for horizontal chip rows — mobile only; on md+ the row wraps
+   instead of scrolling, so a fade would clip the first/last chip. */
+@media (max-width: 767px) {
+  .chip-row-fade {
+    mask-image: linear-gradient(to right, transparent 0, black 12px, black calc(100% - 12px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0, black 12px, black calc(100% - 12px), transparent 100%);
+  }
+}
+
 /* iOS safe area */
 .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
 .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
@@ -355,4 +409,5 @@ html.theme-switching *::after {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
+  .pressable:active { transform: none; }
 }
