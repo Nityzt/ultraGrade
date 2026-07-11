@@ -41,7 +41,7 @@ export default function Planner() {
       <Header
         title="Planner"
         actions={
-          <button onClick={() => { setEditingTask(null); setModal(true); }} className="btn btn-sm btn-primary gap-1">
+          <button onClick={() => { setEditingTask(null); setModal(true); }} className="btn btn-sm btn-primary pressable gap-1">
             <Plus size={14} /> Task
           </button>
         }
@@ -50,7 +50,7 @@ export default function Planner() {
       <div className="p-4 md:p-6 flex-1 overflow-y-auto">
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Left: filters + tasks */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 animate-fade-up">
             <div className="mb-4">
               <TaskFilterBar filter={filter} onChange={setFilter} />
             </div>
@@ -59,7 +59,7 @@ export default function Planner() {
                 icon={ClipboardList}
                 title="No tasks yet"
                 description="Add assignments, exams, and personal tasks to track deadlines."
-                action={<button onClick={() => setModal(true)} className="btn btn-primary btn-sm gap-1"><Plus size={14} /> Add Task</button>}
+                action={<button onClick={() => setModal(true)} className="btn btn-primary btn-sm pressable gap-1"><Plus size={14} /> Add Task</button>}
               />
             ) : filtered.length === 0 ? (
               <EmptyState
@@ -85,14 +85,14 @@ export default function Planner() {
           </div>
 
           {/* Right: calendar */}
-          <div className="w-full lg:w-72 shrink-0">
+          <div className="w-full lg:w-72 shrink-0 animate-fade-up" style={{ animationDelay: '80ms' }}>
             <DeadlineCalendar
               tasks={activeTasks}
               selectedDay={selectedDay}
               onSelectDay={setSelectedDay}
             />
             {selectedDay && (
-              <button onClick={() => setSelectedDay(null)} className="btn btn-ghost btn-xs w-full mt-2">
+              <button onClick={() => setSelectedDay(null)} className="btn btn-ghost btn-xs pressable w-full mt-2">
                 Clear date filter
               </button>
             )}

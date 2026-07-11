@@ -524,12 +524,12 @@ export default function Login() {
             <div className="flex flex-col gap-2">
               <button
                 onClick={handleGoogleSignIn}
-                className="btn w-full gap-2 font-medium rounded-2xl bg-base-200/70 border border-base-300 text-base-content hover:bg-base-300/70 hover:border-base-content/20 active:scale-[0.98] transition-all"
+                className="btn pressable w-full gap-2 font-medium rounded-2xl bg-base-200/70 border border-base-300 text-base-content hover:bg-base-300/70 hover:border-base-content/20 transition-colors"
               >
                 <GoogleIcon />
                 Continue with Google
               </button>
-              <button onClick={handleGuest} disabled={guestLoading} className="btn btn-ghost w-full gap-2 font-medium rounded-2xl text-base-content/70 hover:bg-base-content/5 active:scale-[0.98] transition-all">
+              <button onClick={handleGuest} disabled={guestLoading} className="btn btn-ghost pressable w-full gap-2 font-medium rounded-2xl text-base-content/70 hover:bg-base-content/5 transition-colors">
                 {guestLoading ? <span className="loading loading-spinner loading-xs" /> : <UserRound size={16} />}
                 Continue as guest
               </button>

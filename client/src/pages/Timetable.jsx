@@ -37,10 +37,10 @@ export default function Timetable() {
         title="Timetable"
         actions={
           <div className="flex gap-2">
-            <button onClick={() => window.print()} className="btn btn-sm btn-ghost hidden md:flex gap-1">
+            <button onClick={() => window.print()} className="btn btn-sm btn-ghost pressable hidden md:flex gap-1">
               <Printer size={14} /> Print
             </button>
-            <button onClick={() => openAdd()} className="btn btn-sm btn-primary gap-1">
+            <button onClick={() => openAdd()} className="btn btn-sm btn-primary pressable gap-1">
               <Plus size={14} /> Class
             </button>
           </div>

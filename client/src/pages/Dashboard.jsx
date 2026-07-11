@@ -128,32 +128,34 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Permit expiry warning */}
+      {/* Permit expiry warning — glass surface, no DaisyUI alert bar */}
       {hasPermitExpiry && daysUntilExpiry !== null && daysUntilExpiry <= 60 && (
-        <div
-          className={`alert ${daysUntilExpiry <= 14 ? 'alert-error' : 'alert-warning'} shadow-sm`}
-        >
-          <AlertCircle size={18} />
-          <div>
-            <div className="font-semibold">
+        <div className={`glass-card p-4 flex flex-col sm:flex-row sm:items-center gap-3 border-l-4 ${daysUntilExpiry <= 14 ? 'border-l-error' : 'border-l-warning'}`}>
+          <span className={`shrink-0 w-9 h-9 rounded-2xl flex items-center justify-center ${daysUntilExpiry <= 14 ? 'bg-error/12 text-error' : 'bg-warning/15 text-warning'}`}>
+            <AlertCircle size={18} />
+          </span>
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold text-sm">
               {daysUntilExpiry <= 0 ? 'Study permit has expired!' : `Study permit expires in ${daysUntilExpiry} day${daysUntilExpiry !== 1 ? 's' : ''}`}
             </div>
-            <div className="text-sm opacity-80">
+            <div className="text-xs text-base-content/60 mt-0.5">
               {daysUntilExpiry <= 0
                 ? 'Contact your international student office immediately.'
                 : 'Contact your international student office to renew.'}
             </div>
           </div>
-          <button onClick={() => navigate('/immigration')} className="btn btn-sm">Immigration Hub</button>
+          <button onClick={() => navigate('/immigration')} className="btn btn-sm btn-ghost pressable shrink-0 self-start sm:self-auto">Immigration Hub</button>
         </div>
       )}
 
       {/* No active semester */}
       {!activeSemester && (
-        <div className="alert alert-info shadow-sm">
-          <AlertCircle size={18} />
-          <span>No active semester selected. Pick one from the sidebar or create a new one.</span>
-          <button onClick={() => setAddSemOpen(true)} className="btn btn-sm btn-info">Add Semester</button>
+        <div className="glass-card p-4 flex flex-col sm:flex-row sm:items-center gap-3 border-l-4 border-l-info">
+          <span className="shrink-0 w-9 h-9 rounded-2xl bg-info/15 text-info flex items-center justify-center">
+            <AlertCircle size={18} />
+          </span>
+          <span className="flex-1 text-sm text-base-content/80">No active semester selected. Pick one from the sidebar or create a new one.</span>
+          <button onClick={() => setAddSemOpen(true)} className="btn btn-sm btn-primary pressable shrink-0 self-start sm:self-auto">Add Semester</button>
         </div>
       )}
 

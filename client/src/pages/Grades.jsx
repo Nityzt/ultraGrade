@@ -93,11 +93,11 @@ export default function Grades() {
         title="Grades"
         actions={
           <div className="flex gap-2">
-            <button onClick={() => setGpaModal(true)} className="btn btn-sm btn-ghost">GPA Summary</button>
-            <button onClick={exportPDF} disabled={exporting} className="btn btn-sm btn-ghost hidden md:flex gap-1">
+            <button onClick={() => setGpaModal(true)} className="btn btn-sm btn-ghost pressable">GPA Summary</button>
+            <button onClick={exportPDF} disabled={exporting} className="btn btn-sm btn-ghost pressable hidden md:flex gap-1">
               <Download size={14} /> {exporting ? 'Exporting…' : 'Export PDF'}
             </button>
-            <button onClick={() => { setEditingCourse(null); setCourseModal(true); }} className="btn btn-sm btn-primary gap-1">
+            <button onClick={() => { setEditingCourse(null); setCourseModal(true); }} className="btn btn-sm btn-primary pressable gap-1">
               <Plus size={14} /> Course
             </button>
           </div>
@@ -112,7 +112,7 @@ export default function Grades() {
             description={activeSemester ? 'Add your first course or import a course outline.' : 'Add a semester first from the sidebar.'}
             action={
               activeSemester && (
-                <button onClick={() => setCourseModal(true)} className="btn btn-primary btn-sm gap-1">
+                <button onClick={() => setCourseModal(true)} className="btn btn-primary btn-sm pressable gap-1">
                   <Plus size={14} /> Add Course
                 </button>
               )
@@ -120,12 +120,17 @@ export default function Grades() {
           />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-            {activeCourses.map(course => (
-              <CourseCard
+            {activeCourses.map((course, i) => (
+              <div
                 key={course.id}
-                course={course}
-                onEdit={() => { setEditingCourse(course); setCourseModal(true); }}
-              />
+                className="animate-fade-up"
+                style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
+              >
+                <CourseCard
+                  course={course}
+                  onEdit={() => { setEditingCourse(course); setCourseModal(true); }}
+                />
+              </div>
             ))}
           </div>
         )}

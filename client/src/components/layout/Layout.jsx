@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar.jsx';
 import BottomNav from './BottomNav.jsx';
 import OfflineIndicator from '../ui/OfflineIndicator.jsx';
@@ -10,6 +10,7 @@ import { useCardSpotlight } from '../../hooks/useCardSpotlight.js';
 
 export default function Layout() {
   useCardSpotlight();
+  const location = useLocation();
   return (
     <div className="flex h-screen overflow-hidden">
       <a href="#main" className="skip-link">Skip to content</a>
@@ -26,7 +27,15 @@ export default function Layout() {
               </div>
             }
           >
-            <Outlet />
+            {/* Route enter reveal — CSS-only, keyed by pathname. Interruptible
+                and freeze-proof (no AnimatePresence: that has a documented freeze
+                history in this codebase). */}
+            {/* h-full so pages with `h-full`/`min-h-full` roots (Grades,
+                Timetable, Planner, Settings) still resolve against <main>'s
+                definite height, as they did before this wrapper existed. */}
+            <div key={location.pathname} className="page-enter h-full">
+              <Outlet />
+            </div>
           </Suspense>
         </main>
       </div>
