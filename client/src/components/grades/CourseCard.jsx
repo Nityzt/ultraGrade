@@ -108,7 +108,6 @@ export default function CourseCard({ course, onEdit }) {
     <motion.div
       layout
       className="glass-card glass-hover overflow-hidden"
-      style={{ borderLeftColor: course.color, borderLeftWidth: '3px' }}
     >
       <div className="card-body p-4 gap-3">
         {/* Header row */}
