@@ -1,4 +1,4 @@
-import { createContext, useContext, useCallback, useEffect, useState } from 'react';
+import { createContext, useContext, useCallback, useEffect, useRef, useState } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
 import { randomCourseColor } from '../utils/colorHelpers.js';
 import { getDefaultGpaScale } from '../data/universities.js';
@@ -75,13 +75,34 @@ export function AppProvider({ children }) {
   const activeTimetable = timetableEntries.filter(e => e.semesterId === activeSemester?.id);
 
   // ── Settings ──────────────────────────────────────────────────────────────
+  // settingsRef tracks the latest settings SYNCHRONOUSLY. Two updateSettings
+  // calls in the same tick (e.g. onboarding finish(): addSemester → activeSemesterId,
+  // then setStudentType) would otherwise both read the same stale `settings`
+  // closure and the second would clobber the first — in state AND in the
+  // profile upsert. (The sync call lives outside the setState updater on
+  // purpose: updaters run twice under StrictMode.)
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
+
+  // Pending insert syncs keyed by entity id, so dependent inserts (FK rows)
+  // can chain after their parent row has committed. Sync fns may return
+  // Supabase PromiseLike thenables (no `.finally`), so normalise via
+  // Promise.resolve before tracking.
+  const pendingSyncs = useRef(new Map());
+  const trackPending = (id, promise) => {
+    const p = Promise.resolve(promise);
+    pendingSyncs.current.set(id, p);
+    p.finally(() => pendingSyncs.current.delete(id));
+    return p;
+  };
+  const afterParent = (id) =>
+    (id && pendingSyncs.current.get(id)) || Promise.resolve({ error: null });
   const updateSettings = useCallback((updates) => {
-    setSettings(prev => {
-      const next = { ...prev, ...updates };
-      if (user) sync.upsertProfile(next, user.id).then(({ error }) => {
-        if (error) onSyncError('Failed to save settings');
-      });
-      return next;
+    const next = { ...settingsRef.current, ...updates };
+    settingsRef.current = next;
+    setSettings(next);
+    if (user) sync.upsertProfile(next, user.id).then(({ error }) => {
+      if (error) onSyncError('Failed to save settings');
     });
   }, [setSettings, user]);
 
@@ -110,7 +131,7 @@ export function AppProvider({ children }) {
     const sem = { id: generateId(), name: '', startDate: '', endDate: '', ...data };
     setSemesters(prev => [...prev, sem]);
     updateSettings({ activeSemesterId: sem.id });
-    if (user) sync.insertSemester(sem, user.id).then(({ error }) => {
+    if (user) trackPending(sem.id, sync.insertSemester(sem, user.id)).then(({ error }) => {
       if (error) { setSemesters(prev => prev.filter(s => s.id !== sem.id)); onSyncError('Failed to save semester'); }
     });
     return sem;
@@ -163,7 +184,11 @@ export function AppProvider({ children }) {
       ...data
     };
     setCourses(prev => [...prev, course]);
-    if (user) sync.insertCourse(course, user.id).then(({ error }) => {
+    if (user) trackPending(course.id,
+      afterParent(course.semesterId).then(({ error: parentErr }) =>
+        parentErr ? { error: parentErr } : sync.insertCourse(course, user.id)
+      )
+    ).then(({ error }) => {
       if (error) { setCourses(prev => prev.filter(c => c.id !== course.id)); onSyncError('Failed to save course'); }
     });
     return course;
@@ -286,7 +311,9 @@ export function AppProvider({ children }) {
   const addTimetableEntry = useCallback((data) => {
     const entry = { id: generateId(), semesterId: activeSemester?.id, courseId: null, ...data };
     setTimetableEntries(prev => [...prev, entry]);
-    if (user) sync.insertTimetableEntry(entry, user.id).then(({ error }) => {
+    if (user) afterParent(entry.courseId || entry.semesterId).then(({ error: parentErr }) =>
+      parentErr ? { error: parentErr } : sync.insertTimetableEntry(entry, user.id)
+    ).then(({ error }) => {
       if (error) { setTimetableEntries(prev => prev.filter(e => e.id !== entry.id)); onSyncError('Failed to save class'); }
     });
     return entry;
@@ -324,7 +351,9 @@ export function AppProvider({ children }) {
       ...data
     };
     setTasks(prev => [...prev, task]);
-    if (user) sync.insertTask(task, user.id).then(({ error }) => {
+    if (user) afterParent(task.courseId || task.semesterId).then(({ error: parentErr }) =>
+      parentErr ? { error: parentErr } : sync.insertTask(task, user.id)
+    ).then(({ error }) => {
       if (error) { setTasks(prev => prev.filter(t => t.id !== task.id)); onSyncError('Failed to save task'); }
     });
     return task;
@@ -345,16 +374,15 @@ export function AppProvider({ children }) {
   }, [setTasks, user]);
 
   const toggleTaskComplete = useCallback((id) => {
-    setTasks(prev => prev.map(t => {
-      if (t.id !== id) return t;
-      const completed = !t.completed;
-      const completedAt = completed ? new Date().toISOString() : null;
-      if (user) sync.updateTask(id, { completed, completedAt }, user.id).then(({ error }) => {
-        if (error) onSyncError('Failed to update task');
-      });
-      return { ...t, completed, completedAt };
-    }));
-  }, [setTasks, user]);
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+    const completed = !task.completed;
+    const completedAt = completed ? new Date().toISOString() : null;
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, completed, completedAt } : t));
+    if (user) sync.updateTask(id, { completed, completedAt }, user.id).then(({ error }) => {
+      if (error) onSyncError('Failed to update task');
+    });
+  }, [setTasks, tasks, user]);
 
   // ── Outline import ────────────────────────────────────────────────────────
   const importFromOutline = useCallback((parsed) => {
@@ -393,14 +421,12 @@ export function AppProvider({ children }) {
 
   // ── Study hours ───────────────────────────────────────────────────────────
   const addStudyTime = useCallback((courseId, seconds) => {
-    setStudyHours(prev => {
-      const next = { ...prev, [courseId]: (prev[courseId] || 0) + seconds };
-      if (user) sync.upsertStudyHours(courseId, next[courseId], user.id).then(({ error }) => {
-        if (error) onSyncError('Failed to save study time');
-      });
-      return next;
+    const total = (studyHours[courseId] || 0) + seconds;
+    setStudyHours(prev => ({ ...prev, [courseId]: total }));
+    if (user) sync.upsertStudyHours(courseId, total, user.id).then(({ error }) => {
+      if (error) onSyncError('Failed to save study time');
     });
-  }, [setStudyHours, user]);
+  }, [setStudyHours, studyHours, user]);
 
   const getStudyHours = useCallback((courseId) => studyHours[courseId] || 0, [studyHours]);
 
