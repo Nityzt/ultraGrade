@@ -33,6 +33,7 @@ Track grades & GPA, manage your timetable, plan assignments, and access live Can
 | **Calendar sync** | Export a private ICS feed of your deadlines (subscribe from Google/Apple/Outlook), and opt-in Google Calendar import → events become tasks & classes |
 | **Settings** | Name, school, GPA scale, theme, study permit expiry, week start, grade display format |
 | **Two themes** | **Classic** (electric-lime "Kinetic Moss" — the flagship brand identity, default) and **Light** (emerald). Toggle flips between them; Settings has a segmented picker. Switching uses a View-Transitions circular reveal sweeping out from the click point — solid edge, real content on both sides, and the toggle visibly locks while the reveal runs (on the login screen the toggle is a little physics toy — a soft "ping" halo invites you to grab it, then fling it and it flies with momentum, bounces off the edges, and springs back to its corner after a moment; a single rAF-driven `transform` keeps it at 60fps); reduced-motion aware. Your saved theme is applied before first paint (inline script in `index.html`), so there's no flash of the wrong theme on load/reload |
+| **Native-feel motion** | Apple-fluid interaction layer: every tappable compresses on press (`.pressable`), route changes get a subtle CSS enter reveal, the bottom-nav/day-selector active pill *slides* between tabs with an interruptible spring, page headers are unified sticky glass bars whose hairline appears only on scroll, filter chips are a horizontal snap row on mobile, and the deadline calendar collapses to a summary on phones — all under one house ease-out curve, all reduced-motion aware |
 | **Accessibility** | Skip-to-content, keyboard focus rings, focus-trapped dialogs, ARIA labels, live-region toasts for sync/offline |
 | **PWA** | Installable on iPhone & Android with a native icon set + install prompt; works offline (Workbox + SPA navigation fallback) |
 | **Auth** | Google OAuth + email/password; JWT-protected AI endpoint |
@@ -168,7 +169,7 @@ ultraGrade/
         │   ├── immigration/        # InfoSection, WorkRightsTable, ResourceCard
         │   ├── layout/             # Sidebar, BottomNav, Header, Layout
         │   ├── onboarding/         # WelcomeIntro (pre-login), OnboardingWizard (post-login)
-        │   └── ui/                 # Modal, ProgressRing, ConfirmDialog, PageHeader, etc.
+        │   └── ui/                 # Modal, ProgressRing, ConfirmDialog, etc.
         ├── hooks/                  # useGradeCalc, useSupabaseLoader, useSupabaseSync
         ├── utils/                  # gradeCalculations, dateHelpers, colorHelpers,
         │                           #   migrationUtils (all with Vitest tests)
