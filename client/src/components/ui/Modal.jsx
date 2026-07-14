@@ -19,7 +19,7 @@ function useIsMobile() {
   return isMobile;
 }
 
-export default function Modal({ isOpen, onClose, title, children, size = 'md' }) {
+export default function Modal({ isOpen, onClose, title, children, size = 'md', dismissable = true }) {
   const reduce = useReducedMotion();
   const isMobile = useIsMobile();
   // Layout must NOT depend on motion preference — a reduced-motion user on
@@ -30,12 +30,26 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' })
   const openerRef = useRef(null);
   const titleId = useId();
 
+  // Every dismissal path funnels through here. While `dismissable` is false
+  // (e.g. an in-flight AI parse the user must not abandon), refuse to close
+  // and nudge the dialog instead so the intent visibly registers.
+  const attemptClose = () => {
+    if (dismissable) { onClose(); return; }
+    const node = dialogRef.current;
+    if (!node) return;
+    node.classList.remove('modal-nudge');
+    void node.offsetWidth; // restart the animation if it's mid-run
+    node.classList.add('modal-nudge');
+  };
+  const attemptCloseRef = useRef(attemptClose);
+  attemptCloseRef.current = attemptClose;
+
   // Escape to close
   useEffect(() => {
-    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    const handler = (e) => { if (e.key === 'Escape') attemptCloseRef.current(); };
     if (isOpen) document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   // Lock body scroll while open
   useEffect(() => {
@@ -69,7 +83,7 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' })
   const sizeClasses = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' };
 
   const handleDragEnd = (e, info) => {
-    if (info.offset.y > 120 || info.velocity.y > 600) onClose();
+    if (info.offset.y > 120 || info.velocity.y > 600) attemptClose();
   };
 
   return createPortal(
@@ -81,7 +95,7 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' })
           exit={{ opacity: 0 }}
           transition={{ duration: reduce ? 0 : 0.15 }}
           className={`fixed inset-0 z-50 flex p-4 bg-black/70 backdrop-blur-md ${isSheet ? 'items-end p-0' : 'items-center justify-center'}`}
-          onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+          onClick={(e) => { if (e.target === e.currentTarget) attemptClose(); }}
         >
           <motion.div
             ref={dialogRef}
@@ -113,13 +127,13 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' })
             {title ? (
               <div className="flex items-center justify-between px-6 py-4 border-b border-base-300 shrink-0">
                 <h3 id={titleId} className="font-semibold text-base-content">{title}</h3>
-                <button onClick={onClose} className="pressable w-11 h-11 -m-2 flex items-center justify-center rounded-full text-base-content/70 hover:bg-base-300 transition-colors" aria-label="Close">
+                <button onClick={attemptClose} className="pressable w-11 h-11 -m-2 flex items-center justify-center rounded-full text-base-content/70 hover:bg-base-300 transition-colors" aria-label="Close">
                   <X size={16} />
                 </button>
               </div>
             ) : (
               <button
-                onClick={onClose}
+                onClick={attemptClose}
                 className="pressable w-11 h-11 flex items-center justify-center rounded-full text-base-content/70 hover:bg-base-300 transition-colors absolute top-2 right-2 z-10"
                 aria-label="Close"
               >

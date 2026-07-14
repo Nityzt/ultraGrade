@@ -265,6 +265,21 @@ body {
 }
 .page-enter { animation: page-enter var(--dur-base) var(--ease-out) both; }
 
+/* Dialog refuses to dismiss (e.g. mid-parse): horizontal nudge so the intent
+   registers without closing. CSS animation wins over framer's inline
+   transform for its duration, then hands back cleanly. */
+@keyframes modal-nudge {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-10px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(3px); }
+}
+.modal-nudge { animation: modal-nudge 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+@media (prefers-reduced-motion: reduce) {
+  .modal-nudge { animation: none; }
+}
+
 /* Edge fade for horizontal chip rows — mobile only; on md+ the row wraps
    instead of scrolling, so a fade would clip the first/last chip. */
 @media (max-width: 767px) {

@@ -63,7 +63,7 @@ export default function OutlineImportModal({ isOpen, onClose }) {
   const reset = () => { setStatus('idle'); setParsed(null); setError(''); };
 
   return (
-    <Modal isOpen={isOpen} onClose={() => { onClose(); reset(); }} title="Import Course Outline" size="md">
+    <Modal isOpen={isOpen} onClose={() => { onClose(); reset(); }} title="Import Course Outline" size="md" dismissable={status !== 'loading'}>
       {status === 'idle' && (
         <div className="flex flex-col items-center gap-4 py-4">
           <div
