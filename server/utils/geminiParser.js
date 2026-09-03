@@ -37,6 +37,7 @@ const RESPONSE_SCHEMA = {
         properties: {
           name: { type: SchemaType.STRING },
           weight: { type: SchemaType.NUMBER },
+          dropLowest: { type: SchemaType.BOOLEAN },
         },
         required: ['name', 'weight'],
       },
@@ -48,6 +49,7 @@ const RESPONSE_SCHEMA = {
         properties: {
           title: { type: SchemaType.STRING },
           date: { type: SchemaType.STRING },
+          dueTime: { type: SchemaType.STRING },
           type: { type: SchemaType.STRING },
         },
         required: ['title', 'date'],
@@ -71,8 +73,8 @@ Fields:
 - professor: primary instructor's name only (no title honorifics if avoidable).
 - creditHours: numeric credit value (default to 3 only if truly unspecified).
 - schedule: every recurring class meeting. dayOfWeek is an INTEGER where 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday. Times are 24-hour "HH:MM". type is one of "lecture", "lab", "tutorial". Include lectures, labs AND tutorials as separate entries.
-- assessments: every graded component with its weight as a number out of 100 (e.g. Midterm 30). Weights should sum to ~100.
-- deadlines: specific dated items (assignments, quizzes, midterms, exams, project milestones). type is one of "assignment", "exam", "quiz", "project".
+- assessments: every graded component with its weight as a number out of 100 (e.g. Midterm 30). Weights should sum to ~100. Set dropLowest true ONLY if the outline explicitly says the lowest score in that component is dropped.
+- deadlines: specific dated items (assignments, quizzes, midterms, exams, project milestones). type is one of "assignment", "exam", "quiz", "project". Include dueTime as 24-hour "HH:MM" when the outline gives a specific time (exam start, submission cutoff); omit otherwise.
 
 CRITICAL — dates:
 - Every deadline's "date" MUST be an absolute calendar date in "YYYY-MM-DD" format.

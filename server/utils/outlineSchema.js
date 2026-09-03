@@ -24,11 +24,13 @@ const scheduleItemSchema = z.object({
 const assessmentSchema = z.object({
   name: z.string().trim().min(1),
   weight: z.coerce.number().min(0).max(100),
+  dropLowest: z.coerce.boolean().catch(false).default(false),
 });
 
 const deadlineSchema = z.object({
   title: z.string().trim().min(1),
   date: z.string().regex(DATE),
+  dueTime: z.string().regex(TIME).catch('').default(''),
   type: z.enum(['assignment', 'exam', 'quiz', 'project']).catch('assignment'),
 });
 

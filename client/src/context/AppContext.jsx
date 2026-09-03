@@ -392,7 +392,7 @@ export function AppProvider({ children }) {
       professor: parsed.professor || '',
       creditHours: parsed.creditHours || 3,
       categories: (parsed.assessments || []).map(a => ({
-        id: generateId(), name: a.name, weight: a.weight, dropLowest: false, grades: []
+        id: generateId(), name: a.name, weight: a.weight, dropLowest: a.dropLowest ?? false, grades: []
       })),
       outlineUploaded: true
     };
@@ -413,7 +413,7 @@ export function AppProvider({ children }) {
     }
 
     for (const dl of parsed.deadlines || []) {
-      addTask({ title: dl.title, type: dl.type || 'assignment', dueDate: dl.date, courseId: course.id });
+      addTask({ title: dl.title, type: dl.type || 'assignment', dueDate: dl.date, dueTime: dl.dueTime || '23:59', courseId: course.id });
     }
 
     return course;

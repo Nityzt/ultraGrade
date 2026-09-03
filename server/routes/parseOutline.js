@@ -31,7 +31,11 @@ router.post('/', upload.single('outline'), async (req, res) => {
 
     if (mimetype === 'application/pdf') {
       const parsed = await pdfParse(buffer);
-      const text = parsed.text.slice(0, 8000);
+      const text = parsed.text.trim().slice(0, 60000);
+      // Scanned PDFs have no extractable text layer — Gemini can read them as images instead.
+      if (text.length < 200) {
+        return res.status(422).json({ success: false, error: 'This PDF looks scanned. Upload photos or screenshots of the outline instead — images work.' });
+      }
       data = await parseOutlineWithGemini(text, null, null, context);
     } else if (mimetype.startsWith('image/')) {
       const imageBase64 = buffer.toString('base64');
