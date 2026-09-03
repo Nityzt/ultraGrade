@@ -10,6 +10,7 @@ import {
   today,
   dayName,
   dayFullName,
+  nextOccurrenceOfDay,
 } from './dateHelpers.js'
 
 // ---------------------------------------------------------------------------
@@ -100,6 +101,36 @@ describe('getUrgency', () => {
   it('returns "later" when due more than 7 days away', () => {
     const task = { completed: false, dueDate: addDays(today(), 8) }
     expect(getUrgency(task)).toBe('later')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// nextOccurrenceOfDay — fixed reference dates (2025-06-09 is a Monday)
+// ---------------------------------------------------------------------------
+describe('nextOccurrenceOfDay', () => {
+  it('returns the same date when fromDate already falls on that day', () => {
+    const wednesday = new Date('2025-06-11T00:00:00')
+    expect(nextOccurrenceOfDay(3, wednesday)).toBe('2025-06-11')
+  })
+
+  it('returns a later day in the same week', () => {
+    const monday = new Date('2025-06-09T00:00:00')
+    expect(nextOccurrenceOfDay(5, monday)).toBe('2025-06-13') // Friday
+  })
+
+  it('wraps to next week when the day has already passed', () => {
+    const friday = new Date('2025-06-13T00:00:00')
+    expect(nextOccurrenceOfDay(1, friday)).toBe('2025-06-16') // next Monday
+  })
+
+  it('handles Sunday (0) targets', () => {
+    const monday = new Date('2025-06-09T00:00:00')
+    expect(nextOccurrenceOfDay(0, monday)).toBe('2025-06-15')
+  })
+
+  it('crosses month boundaries', () => {
+    const monday = new Date('2025-06-30T00:00:00')
+    expect(nextOccurrenceOfDay(3, monday)).toBe('2025-07-02')
   })
 })
 

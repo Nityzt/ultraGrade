@@ -1,18 +1,30 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import Modal from '../ui/Modal.jsx';
 import ColorPicker from '../ui/ColorPicker.jsx';
 import { useApp } from '../../context/AppContext.jsx';
 import { randomCourseColor } from '../../utils/colorHelpers.js';
+import { timeToMinutes } from '../../utils/dateHelpers.js';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DEFAULT_DURATION_MINS = 90;
+
+function minutesToTime(mins) {
+  const clamped = Math.min(mins, 23 * 60 + 59);
+  const h = Math.floor(clamped / 60);
+  const m = clamped % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
 
 export default function AddClassModal({ isOpen, onClose, editingEntry, prefillDay, prefillTime }) {
   const { addTimetableEntry, updateTimetableEntry, activeCourses } = useApp();
   const { register, handleSubmit, reset, watch, setValue } = useForm();
   const color = watch('color');
+  // Once the user manually edits the end time, stop auto-following the start time.
+  const [endTouched, setEndTouched] = useState(false);
 
   useEffect(() => {
+    setEndTouched(false);
     if (editingEntry) {
       reset({ ...editingEntry });
     } else {
@@ -23,6 +35,15 @@ export default function AddClassModal({ isOpen, onClose, editingEntry, prefillDa
       });
     }
   }, [editingEntry, isOpen, prefillDay, prefillTime, reset]);
+
+  // Follow the start time with a 90-minute default end time until the user
+  // edits the end field themselves.
+  const startTime = watch('startTime');
+  useEffect(() => {
+    if (editingEntry || endTouched || !startTime) return;
+    setValue('endTime', minutesToTime(timeToMinutes(startTime) + DEFAULT_DURATION_MINS));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startTime, editingEntry, endTouched]);
 
   const onSubmit = (data) => {
     const payload = { ...data, dayOfWeek: Number(data.dayOfWeek) };
@@ -87,7 +108,10 @@ export default function AddClassModal({ isOpen, onClose, editingEntry, prefillDa
           </div>
           <div className="form-control">
             <label className="label"><span className="label-text">End Time</span></label>
-            <input {...register('endTime', { required: true })} type="time" className="input input-bordered input-sm" />
+            <input
+              {...register('endTime', { required: true, onChange: () => setEndTouched(true) })}
+              type="time" className="input input-bordered input-sm"
+            />
           </div>
         </div>
 

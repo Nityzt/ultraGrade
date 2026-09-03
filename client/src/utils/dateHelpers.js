@@ -62,6 +62,17 @@ export function getUrgency(task) {
   return 'later';
 }
 
+/**
+ * Soonest date >= fromDate whose weekday matches dayOfWeek (0=Sun…6=Sat),
+ * as YYYY-MM-DD. Returns fromDate's own date when it already matches.
+ */
+export function nextOccurrenceOfDay(dayOfWeek, fromDate = new Date()) {
+  const d = new Date(fromDate);
+  d.setHours(12, 0, 0, 0); // noon: keeps toDateStr's UTC split on the local date
+  d.setDate(d.getDate() + ((dayOfWeek - d.getDay() + 7) % 7));
+  return toDateStr(d);
+}
+
 export function urgencyLabel(urgency) {
   const labels = { overdue: 'Overdue', today: 'Today', critical: 'Tomorrow', soon: 'Soon', upcoming: 'This Week', later: 'Later', done: 'Done' };
   return labels[urgency] || 'Later';

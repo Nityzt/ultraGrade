@@ -1,6 +1,6 @@
 import { createContext, useContext, useCallback, useEffect, useRef, useState } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
-import { randomCourseColor } from '../utils/colorHelpers.js';
+import { nextCourseColor } from '../utils/colorHelpers.js';
 import { getDefaultGpaScale } from '../data/universities.js';
 import { useAuth } from './AuthContext.jsx';
 import { loadAll } from '../hooks/useSupabaseLoader.js';
@@ -176,7 +176,7 @@ export function AppProvider({ children }) {
       professor: '',
       creditHours: 3,
       targetGrade: 70,
-      color: randomCourseColor(),
+      color: nextCourseColor(courses),
       categories: [],
       finalGradeOverride: null,
       outlineUploaded: false,
@@ -192,7 +192,7 @@ export function AppProvider({ children }) {
       if (error) { setCourses(prev => prev.filter(c => c.id !== course.id)); onSyncError('Failed to save course'); }
     });
     return course;
-  }, [setCourses, activeSemester, user]);
+  }, [setCourses, activeSemester, courses, user]);
 
   const updateCourse = useCallback((id, data) => {
     setCourses(prev => prev.map(c => c.id === id ? { ...c, ...data } : c));

@@ -38,6 +38,7 @@ export default function OnboardingWizard() {
   const [name, setName] = useState('');
   const [school, setSchool] = useState('');
   const [type, setType] = useState(null);
+  const [permitExpiry, setPermitExpiry] = useState('');
   const [sem, setSem] = useState({ name: '', startDate: '', endDate: '' });
 
   const step = STEPS[index];
@@ -64,6 +65,9 @@ export default function OnboardingWizard() {
         endDate: sem.endDate,
         isActive: true,
       });
+    }
+    if (type === 'international' && permitExpiry) {
+      updateSettings({ permitExpiryDate: permitExpiry });
     }
     setStudentType(type); // LAST — releases RequireStudentType guard
     navigate('/');
@@ -171,6 +175,19 @@ export default function OnboardingWizard() {
                       desc="Canadian citizen or PR studying in Ontario — I want OSAP info and student resources."
                     />
                   </div>
+
+                  {type === 'international' && (
+                    <div className="form-control mt-4">
+                      <label className="label"><span className="label-text text-sm">Study permit expiry (optional)</span></label>
+                      <input
+                        type="date"
+                        value={permitExpiry}
+                        onChange={(e) => setPermitExpiry(e.target.value)}
+                        className="input input-bordered w-full rounded-2xl"
+                        aria-label="Study permit expiry date"
+                      />
+                    </div>
+                  )}
                 </StepShell>
               )}
 

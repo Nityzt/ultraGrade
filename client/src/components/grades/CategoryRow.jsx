@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useReducedMotion } from 'framer-motion';
@@ -16,12 +16,16 @@ function gradeBarColor(pct) {
 }
 
 /** Inline quick-add — type a score and press Enter. No modal for the common case. */
-function QuickAddGrade({ courseId, categoryId, gradeCount }) {
+function QuickAddGrade({ courseId, categoryId, gradeCount, defaultMax }) {
   const { addGrade } = useApp();
   const [label, setLabel] = useState('');
   const [score, setScore] = useState('');
-  const [max, setMax] = useState('100');
+  const [max, setMax] = useState(defaultMax || '100');
   const scoreRef = useRef(null);
+
+  // Keep the max-score field in step with the category's most recent grade
+  // (e.g. switching between categories with different "out of" conventions).
+  useEffect(() => { setMax(defaultMax || '100'); }, [defaultMax]);
 
   const submit = () => {
     const s = parseFloat(score);
@@ -172,7 +176,12 @@ export default function CategoryRow({ category, courseId, onEdit, onDelete }) {
               />
             ))
           )}
-          <QuickAddGrade courseId={courseId} categoryId={category.id} gradeCount={grades.length} />
+          <QuickAddGrade
+            courseId={courseId}
+            categoryId={category.id}
+            gradeCount={grades.length}
+            defaultMax={grades.length > 0 ? grades[grades.length - 1].maxScore : undefined}
+          />
         </div>
       )}
 

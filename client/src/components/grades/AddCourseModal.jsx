@@ -4,12 +4,12 @@ import { Upload } from 'lucide-react';
 import Modal from '../ui/Modal.jsx';
 import ColorPicker from '../ui/ColorPicker.jsx';
 import { useApp } from '../../context/AppContext.jsx';
-import { randomCourseColor } from '../../utils/colorHelpers.js';
+import { nextCourseColor } from '../../utils/colorHelpers.js';
 
 export default function AddCourseModal({ isOpen, onClose, editingCourse, onImportOutline }) {
-  const { addCourse, updateCourse } = useApp();
+  const { addCourse, updateCourse, courses } = useApp();
   const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm({
-    defaultValues: { code: '', name: '', professor: '', creditHours: 3, targetGrade: 70, color: randomCourseColor() }
+    defaultValues: { code: '', name: '', professor: '', creditHours: 3, targetGrade: 70, color: nextCourseColor(courses) }
   });
 
   const color = watch('color');
@@ -18,7 +18,7 @@ export default function AddCourseModal({ isOpen, onClose, editingCourse, onImpor
     if (editingCourse) {
       reset({ ...editingCourse });
     } else {
-      reset({ code: '', name: '', professor: '', creditHours: 3, targetGrade: 70, color: randomCourseColor() });
+      reset({ code: '', name: '', professor: '', creditHours: 3, targetGrade: 70, color: nextCourseColor(courses) });
     }
   }, [editingCourse, isOpen, reset]);
 

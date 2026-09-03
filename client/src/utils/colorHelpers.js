@@ -10,6 +10,14 @@ export function randomCourseColor() {
   return COURSE_COLORS[Math.floor(Math.random() * COURSE_COLORS.length)];
 }
 
+// First palette color not already used by an existing course; when every color
+// is taken, cycle deterministically by course count.
+export function nextCourseColor(existingCourses = []) {
+  const used = new Set(existingCourses.map(c => c.color));
+  const free = COURSE_COLORS.find(c => !used.has(c));
+  return free || COURSE_COLORS[existingCourses.length % COURSE_COLORS.length];
+}
+
 export function hexToRgb(hex) {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result ? {

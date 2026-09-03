@@ -1,19 +1,40 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import Modal from '../ui/Modal.jsx';
 import { useApp } from '../../context/AppContext.jsx';
-import { today } from '../../utils/dateHelpers.js';
+import { today, nextOccurrenceOfDay } from '../../utils/dateHelpers.js';
 
 export default function AddTaskModal({ isOpen, onClose, editingTask }) {
-  const { addTask, updateTask, activeCourses } = useApp();
-  const { register, handleSubmit, reset } = useForm();
+  const { addTask, updateTask, activeCourses, timetableEntries } = useApp();
+  const { register, handleSubmit, reset, watch, setValue } = useForm();
+  // Tracks whether the user has manually touched the date field this session —
+  // once true, the course-linked smart-default stops overwriting their choice.
+  const [dateTouched, setDateTouched] = useState(false);
 
   useEffect(() => {
+    setDateTouched(false);
     reset(editingTask
       ? { ...editingTask }
       : { title: '', type: 'assignment', courseId: '', dueDate: today(), dueTime: '23:59', priority: 'medium', reminderDays: 3, description: '' }
     );
   }, [editingTask, isOpen, reset]);
+
+  // When creating (not editing) a task, picking a course defaults the due
+  // date to that course's next upcoming class — unless the user already set
+  // a date by hand.
+  const courseId = watch('courseId');
+  useEffect(() => {
+    if (editingTask || dateTouched || !courseId) return;
+    const entries = timetableEntries.filter(e => e.courseId === courseId);
+    if (entries.length === 0) return;
+    let soonest = null;
+    for (const entry of entries) {
+      const occ = nextOccurrenceOfDay(entry.dayOfWeek);
+      if (!soonest || occ < soonest) soonest = occ;
+    }
+    if (soonest) setValue('dueDate', soonest);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courseId, editingTask, dateTouched, timetableEntries]);
 
   const onSubmit = (data) => {
     if (editingTask) updateTask(editingTask.id, data);
@@ -63,7 +84,10 @@ export default function AddTaskModal({ isOpen, onClose, editingTask }) {
         <div className="grid grid-cols-2 gap-3">
           <div className="form-control">
             <label className="label"><span className="label-text">Due Date</span></label>
-            <input {...register('dueDate', { required: true })} type="date" className="input input-bordered input-sm" />
+            <input
+              {...register('dueDate', { required: true, onChange: () => setDateTouched(true) })}
+              type="date" className="input input-bordered input-sm"
+            />
           </div>
           <div className="form-control">
             <label className="label"><span className="label-text">Due Time</span></label>
