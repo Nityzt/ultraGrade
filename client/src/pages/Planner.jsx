@@ -8,6 +8,7 @@ import DeadlineCalendar from '../components/planner/DeadlineCalendar.jsx';
 import AddTaskModal from '../components/planner/AddTaskModal.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
 import { useApp } from '../context/AppContext.jsx';
+import { getUrgency } from '../utils/dateHelpers.js';
 
 export default function Planner() {
   const { activeTasks, deleteTask } = useApp();
@@ -28,10 +29,21 @@ export default function Planner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
+  // Dashboard "Overdue" stat tile deep-links here: ?filter=overdue narrows
+  // the status filter to overdue-only, then the param is cleared.
+  useEffect(() => {
+    if (searchParams.get('filter') === 'overdue') {
+      setFilter(prev => ({ ...prev, status: 'overdue' }));
+      setSearchParams((prev) => { prev.delete('filter'); return prev; }, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   let filtered = activeTasks;
   if (filter.type !== 'all') filtered = filtered.filter(t => t.type === filter.type);
   if (filter.status === 'active') filtered = filtered.filter(t => !t.completed);
   if (filter.status === 'completed') filtered = filtered.filter(t => t.completed);
+  if (filter.status === 'overdue') filtered = filtered.filter(t => !t.completed && t.dueDate && getUrgency(t) === 'overdue');
   if (filter.courseId) filtered = filtered.filter(t => t.courseId === filter.courseId);
   if (filter.search) filtered = filtered.filter(t => t.title.toLowerCase().includes(filter.search.toLowerCase()));
   if (selectedDay) filtered = filtered.filter(t => t.dueDate === selectedDay);

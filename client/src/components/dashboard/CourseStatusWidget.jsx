@@ -1,7 +1,24 @@
 import { useApp } from '../../context/AppContext';
-import { calcCourseGrade, gradeHex, gradeGradient } from '../../utils/gradeCalculations';
+import { calcCourseGrade, calcWhatDoINeed, gradeHex, gradeGradient } from '../../utils/gradeCalculations';
 import { BookOpen } from 'lucide-react';
 import { Link } from 'react-router-dom';
+
+// Quiet "what do I need" hint under a course's progress bar — uses every
+// still-ungraded category as the solve-for set (same default the WhatDoINeed
+// modal starts with).
+function whatDoINeedHint(course) {
+  const categories = course.categories || [];
+  if (categories.length === 0 || !course.targetGrade) return null;
+  const { assessedWeight } = calcCourseGrade(course);
+  if (assessedWeight >= 100) return null;
+  const ungradedIds = categories.filter(c => !c.grades?.length).map(c => c.id);
+  if (ungradedIds.length === 0) return null;
+  const result = calcWhatDoINeed(course, course.targetGrade, ungradedIds);
+  if (result.alreadySecured) return 'target secured ✓';
+  if (result.impossible) return 'target out of reach';
+  if (result.required != null) return `needs ${Math.round(result.required)}% avg on remaining`;
+  return null;
+}
 
 export default function CourseStatusWidget() {
   const { activeCourses } = useApp();
@@ -24,6 +41,7 @@ export default function CourseStatusWidget() {
             const { running, assessedWeight } = calcCourseGrade(course);
             const graded = running != null;
             const hex = graded ? gradeHex(running) : null;
+            const hint = graded ? whatDoINeedHint(course) : null;
             return (
               <Link
                 key={course.id}
@@ -56,6 +74,7 @@ export default function CourseStatusWidget() {
                 <div className="text-[10px] text-base-content/35">
                   {graded ? `${assessedWeight}% of grade assessed` : 'Not graded yet'}
                 </div>
+                {hint && <div className="text-xs text-base-content/40">{hint}</div>}
               </Link>
             );
           })}

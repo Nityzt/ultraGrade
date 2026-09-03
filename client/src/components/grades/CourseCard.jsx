@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, sortableKeyboardCoordinates, arrayMove } from '@dnd-kit/sortable';
@@ -11,6 +12,8 @@ import ConfirmDialog from '../ui/ConfirmDialog.jsx';
 import { useGradeCalc } from '../../hooks/useGradeCalc.js';
 import { useApp } from '../../context/AppContext.jsx';
 import { getRmpUrl, getCourseRmpUrl } from '../../data/universities.js';
+import { totalWeight } from '../../utils/gradeCalculations.js';
+import { formatDate } from '../../utils/dateHelpers.js';
 import StudyTimer from './StudyTimer.jsx';
 import AnimatedNumber from '../ui/AnimatedNumber.jsx';
 
@@ -66,8 +69,8 @@ function QuickAddCategory({ courseId, onClose }) {
   );
 }
 
-export default function CourseCard({ course, onEdit }) {
-  const { deleteCourse, deleteCategory, updateCategory, settings, updateCourse } = useApp();
+export default function CourseCard({ course, onEdit, highlighted, onHighlightEnd }) {
+  const { deleteCourse, deleteCategory, updateCategory, settings, updateCourse, tasks } = useApp();
   const calc = useGradeCalc(course);
   const [catModal, setCatModal] = useState(false);
   const [editingCat, setEditingCat] = useState(null);
@@ -89,6 +92,15 @@ export default function CourseCard({ course, onEdit }) {
     [course.categories]
   );
 
+  const weightSum = useMemo(() => totalWeight(sortedCategories), [sortedCategories]);
+
+  const upcomingTasks = useMemo(
+    () => (tasks || [])
+      .filter(t => t.courseId === course.id && !t.completed && t.dueDate)
+      .sort((a, b) => a.dueDate.localeCompare(b.dueDate)),
+    [tasks, course.id]
+  );
+
   const dndSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -107,7 +119,9 @@ export default function CourseCard({ course, onEdit }) {
   return (
     <motion.div
       layout
-      className="glass-card glass-hover overflow-hidden"
+      id={'course-' + course.id}
+      className={`glass-card glass-hover overflow-hidden ${highlighted ? 'course-highlight' : ''}`}
+      onAnimationEnd={highlighted ? onHighlightEnd : undefined}
     >
       <div className="card-body p-4 gap-3">
         {/* Header row */}
@@ -162,6 +176,19 @@ export default function CourseCard({ course, onEdit }) {
           )}
         </div>
 
+        {/* Next up — nearest incomplete task for this course */}
+        {upcomingTasks.length > 0 && (
+          <Link
+            to="/planner"
+            className="text-xs text-base-content/40 hover:text-base-content/70 hover:underline underline-offset-2 w-fit -mt-1"
+          >
+            Next: {upcomingTasks[0].title} · {formatDate(upcomingTasks[0].dueDate)}
+            {upcomingTasks.length > 1 && (
+              <span className="text-base-content/30"> +{upcomingTasks.length - 1} more</span>
+            )}
+          </Link>
+        )}
+
         {/* Running vs projected stats */}
         {calc?.running !== null && (
           <div className="flex gap-4 text-xs bg-base-300/30 rounded-xl px-3 py-2">
@@ -182,6 +209,13 @@ export default function CourseCard({ course, onEdit }) {
         )}
 
         {/* Categories */}
+        {sortedCategories.length > 0 && weightSum !== 100 && (
+          <div className="flex justify-end -mb-1">
+            <span className="badge badge-xs rounded-full px-2 border-warning/30 bg-warning/10 text-warning font-mono">
+              Weights total {weightSum}%
+            </span>
+          </div>
+        )}
         <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleCategoryDragEnd}>
           <SortableContext items={sortedCategories.map(c => c.id)} strategy={verticalListSortingStrategy}>
             <div className="flex flex-col gap-2">

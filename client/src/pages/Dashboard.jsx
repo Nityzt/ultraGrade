@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import QuickStatsRow from '../components/dashboard/QuickStatsRow';
 import GPASummaryWidget from '../components/dashboard/GPASummaryWidget';
 import UpcomingDeadlinesWidget from '../components/dashboard/UpcomingDeadlinesWidget';
@@ -88,6 +88,17 @@ export default function Dashboard() {
   const { semesters, activeSemester, settings } = useApp();
   const [addSemOpen, setAddSemOpen] = useState(false);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Command-palette trigger: ?new=semester opens the add-semester modal,
+  // then the param is cleared (mirrors Planner's ?new=task pattern).
+  useEffect(() => {
+    if (searchParams.get('new') === 'semester') {
+      setAddSemOpen(true);
+      setSearchParams((prev) => { prev.delete('new'); return prev; }, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const today = new Date();
   const hour = today.getHours();

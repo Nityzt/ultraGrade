@@ -4,15 +4,17 @@ import Modal from '../ui/Modal.jsx';
 import { useApp } from '../../context/AppContext.jsx';
 import { today } from '../../utils/dateHelpers.js';
 
-export default function AddGradeModal({ isOpen, onClose, courseId, categoryId, editingGrade }) {
+export default function AddGradeModal({ isOpen, onClose, courseId, categoryId, editingGrade, initialValues }) {
   const { addGrade, updateGrade } = useApp();
   const { register, handleSubmit, reset, formState: { errors } } = useForm();
 
   useEffect(() => {
+    if (!isOpen) return;
     reset(editingGrade
       ? { label: editingGrade.label, score: editingGrade.score, maxScore: editingGrade.maxScore, date: editingGrade.date, weight: editingGrade.weight || 1 }
-      : { label: '', score: '', maxScore: 100, date: today(), weight: 1 }
+      : { label: initialValues?.label || '', score: '', maxScore: 100, date: initialValues?.date || today(), weight: 1 }
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingGrade, isOpen, reset]);
 
   const onSubmit = (data) => {

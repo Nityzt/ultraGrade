@@ -40,38 +40,40 @@ export default function TodaysScheduleWidget() {
             const isLast = idx === todays.length - 1;
 
             return (
-              <li key={entry.id} className={`relative flex gap-4 ${isPast && !isNow ? 'opacity-45' : ''}`}>
-                {/* timeline rail */}
-                <div className="relative flex flex-col items-center w-6 shrink-0">
-                  {!isLast && <span className="absolute top-7 bottom-0 w-px bg-base-content/12" />}
-                  <span
-                    className={`mt-1.5 w-6 h-6 rounded-full flex items-center justify-center border z-10 ${
-                      isNow ? 'bg-primary/20 border-primary' : 'bg-base-content/5 border-base-content/15'
-                    }`}
-                    style={isNow ? { boxShadow: '0 0 14px hsl(var(--p) / 0.4)' } : undefined}
-                  >
+              <li key={entry.id} className={`relative ${isPast && !isNow ? 'opacity-45' : ''}`}>
+                <Link to="/timetable" className="flex gap-4 rounded-2xl -mx-2 px-2 hover:bg-base-content/5 transition-colors">
+                  {/* timeline rail */}
+                  <div className="relative flex flex-col items-center w-6 shrink-0">
+                    {!isLast && <span className="absolute top-7 bottom-0 w-px bg-base-content/12" />}
                     <span
-                      className={`w-2 h-2 rounded-full ${isNow ? 'bg-primary bloom-dot text-primary' : 'bg-base-content/40'}`}
-                    />
-                  </span>
-                </div>
+                      className={`mt-1.5 w-6 h-6 rounded-full flex items-center justify-center border z-10 ${
+                        isNow ? 'bg-primary/20 border-primary' : 'bg-base-content/5 border-base-content/15'
+                      }`}
+                      style={isNow ? { boxShadow: '0 0 14px hsl(var(--p) / 0.4)' } : undefined}
+                    >
+                      <span
+                        className={`w-2 h-2 rounded-full ${isNow ? 'bg-primary bloom-dot text-primary' : 'bg-base-content/40'}`}
+                      />
+                    </span>
+                  </div>
 
-                {/* content */}
-                <div className="flex-1 min-w-0 pb-5">
-                  <div className={`text-[11px] font-semibold mb-0.5 ${isNow ? 'text-primary glow-sage' : 'text-base-content/50'}`}>
-                    {formatTime(entry.startTime)} – {formatTime(entry.endTime)}
-                    {isNow && <span className="ml-2 uppercase tracking-wide">· Now</span>}
-                  </div>
-                  <div className="text-sm font-semibold text-base-content truncate flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                    {entry.label}
-                  </div>
-                  {entry.location && (
-                    <div className="text-xs text-base-content/45 mt-1 flex items-center gap-1">
-                      <MapPin size={12} /> {entry.location}
+                  {/* content */}
+                  <div className="flex-1 min-w-0 pb-5">
+                    <div className={`text-[11px] font-semibold mb-0.5 ${isNow ? 'text-primary glow-sage' : 'text-base-content/50'}`}>
+                      {formatTime(entry.startTime)} – {formatTime(entry.endTime)}
+                      {isNow && <span className="ml-2 uppercase tracking-wide">· Now</span>}
                     </div>
-                  )}
-                </div>
+                    <div className="text-sm font-semibold text-base-content truncate flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                      {entry.label}
+                    </div>
+                    {entry.location && (
+                      <div className="text-xs text-base-content/45 mt-1 flex items-center gap-1">
+                        <MapPin size={12} /> {entry.location}
+                      </div>
+                    )}
+                  </div>
+                </Link>
               </li>
             );
           })}

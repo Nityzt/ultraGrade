@@ -280,6 +280,19 @@ body {
   .modal-nudge { animation: none; }
 }
 
+/* One-shot highlight pulse for a card jumped to via deep-link (e.g. ?course=).
+   Box-shadow only — no transform, so it can't jostle layout or fixed-position
+   descendants. Class is removed by the caller on animationend. */
+@keyframes course-highlight-pulse {
+  0%   { box-shadow: 0 0 0 0 hsl(var(--p) / 0.55); }
+  50%  { box-shadow: 0 0 0 6px hsl(var(--p) / 0.18); }
+  100% { box-shadow: 0 0 0 0 hsl(var(--p) / 0); }
+}
+.course-highlight { animation: course-highlight-pulse 1.2s var(--ease-out) 1; }
+@media (prefers-reduced-motion: reduce) {
+  .course-highlight { animation: none; }
+}
+
 /* Edge fade for horizontal chip rows — mobile only; on md+ the row wraps
    instead of scrolling, so a fade would clip the first/last chip. */
 @media (max-width: 767px) {

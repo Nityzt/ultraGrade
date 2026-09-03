@@ -28,6 +28,11 @@ export function calcCategoryGrade(category) {
   return totalWeight === 0 ? null : weightedSum / totalWeight;
 }
 
+// Sum of category weights (ignores null/undefined weights)
+export function totalWeight(categories = []) {
+  return categories.reduce((sum, cat) => sum + (cat.weight || 0), 0);
+}
+
 // Calculate overall course grade
 export function calcCourseGrade(course) {
   const { categories = [] } = course;

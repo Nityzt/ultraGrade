@@ -4,6 +4,7 @@ import {
   calcCourseGrade,
   calcWhatDoINeed,
   calcSemesterGPA,
+  totalWeight,
   gradeColorClass,
   gradeBgClass,
 } from './gradeCalculations.js'
@@ -311,6 +312,29 @@ describe('calcSemesterGPA', () => {
       },
     ]
     expect(calcSemesterGPA(courses, 'standard-4.0')).toBeCloseTo(3.5)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// totalWeight
+// ---------------------------------------------------------------------------
+describe('totalWeight', () => {
+  it('returns 0 for an empty array', () => {
+    expect(totalWeight([])).toBe(0)
+  })
+
+  it('returns 0 when called with no argument', () => {
+    expect(totalWeight()).toBe(0)
+  })
+
+  it('sums category weights', () => {
+    const cats = [{ weight: 30 }, { weight: 45 }, { weight: 25 }]
+    expect(totalWeight(cats)).toBe(100)
+  })
+
+  it('ignores null and undefined weights', () => {
+    const cats = [{ weight: 40 }, { weight: null }, {}, { weight: 20 }]
+    expect(totalWeight(cats)).toBe(60)
   })
 })
 

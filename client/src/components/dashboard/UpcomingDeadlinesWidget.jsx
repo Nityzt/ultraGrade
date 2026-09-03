@@ -60,18 +60,23 @@ export default function UpcomingDeadlinesWidget() {
             const Icon = TYPE_ICON[task.type] || FileText;
             const due = dueLabel(daysLeft);
             return (
-              <li key={task.id} className="flex items-center gap-3.5 rounded-2xl px-2 py-1.5 hover:bg-base-content/5 transition-colors">
-                <span className={`w-11 h-11 rounded-2xl border flex items-center justify-center shrink-0 ${URGENCY_STYLE[urgency] || URGENCY_STYLE.later}`}>
-                  <Icon size={18} />
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-base-content truncate">{task.title}</div>
-                  <div className="flex items-center gap-2 text-xs mt-0.5">
-                    {course && <span className="font-semibold truncate" style={{ color: course.color }}>{course.code}</span>}
-                    <span className={due.cls}>{due.text}</span>
-                    <span className="text-base-content/30">· {formatDate(task.dueDate)}</span>
+              <li key={task.id}>
+                <Link
+                  to="/planner"
+                  className="flex items-center gap-3.5 rounded-2xl px-2 py-1.5 hover:bg-base-content/5 transition-colors"
+                >
+                  <span className={`w-11 h-11 rounded-2xl border flex items-center justify-center shrink-0 ${URGENCY_STYLE[urgency] || URGENCY_STYLE.later}`}>
+                    <Icon size={18} />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-base-content truncate">{task.title}</div>
+                    <div className="flex items-center gap-2 text-xs mt-0.5">
+                      {course && <span className="font-semibold truncate" style={{ color: course.color }}>{course.code}</span>}
+                      <span className={due.cls}>{due.text}</span>
+                      <span className="text-base-content/30">· {formatDate(task.dueDate)}</span>
+                    </div>
                   </div>
-                </div>
+                </Link>
               </li>
             );
           })}

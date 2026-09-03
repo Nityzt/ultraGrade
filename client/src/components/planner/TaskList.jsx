@@ -8,11 +8,11 @@ function Section({ label, tasks, onEdit, onDelete, defaultOpen = true }) {
   return (
     <div className="mb-4">
       <h4 className="text-xs font-semibold text-base-content/40 uppercase tracking-wider mb-2 px-1">{label} ({tasks.length})</h4>
-      <AnimatePresence>
+      {/* TaskItem must be the direct keyed child — AnimatePresence tracks exits
+          by child key, and the row's own margin/height collapse in one motion. */}
+      <AnimatePresence initial={false}>
         {tasks.map(t => (
-          <div key={t.id} className="mb-2">
-            <TaskItem task={t} onEdit={() => onEdit(t)} onDelete={() => onDelete(t.id)} />
-          </div>
+          <TaskItem key={t.id} task={t} onEdit={() => onEdit(t)} onDelete={() => onDelete(t.id)} />
         ))}
       </AnimatePresence>
     </div>
@@ -38,11 +38,11 @@ export default function TaskList({ tasks, onEdit, onDelete }) {
             Completed ({done.length})
           </summary>
           <div className="mt-2">
-            {done.map(t => (
-              <div key={t.id} className="mb-2">
-                <TaskItem task={t} onEdit={() => onEdit(t)} onDelete={() => onDelete(t.id)} />
-              </div>
-            ))}
+            <AnimatePresence initial={false}>
+              {done.map(t => (
+                <TaskItem key={t.id} task={t} onEdit={() => onEdit(t)} onDelete={() => onDelete(t.id)} />
+              ))}
+            </AnimatePresence>
           </div>
         </details>
       )}

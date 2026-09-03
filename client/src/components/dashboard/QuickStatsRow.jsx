@@ -1,5 +1,5 @@
 import { useApp } from '../../context/AppContext';
-import { today } from '../../utils/dateHelpers';
+import { getUrgency } from '../../utils/dateHelpers';
 import { BookOpen, CheckSquare, Clock, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import AnimatedNumber from '../ui/AnimatedNumber.jsx';
@@ -9,8 +9,7 @@ export default function QuickStatsRow() {
 
   const todayDow = new Date().getDay();
   const classesToday = activeTimetable.filter(e => e.dayOfWeek === todayDow).length;
-  const todayStr = today();
-  const overdue = activeTasks.filter(t => !t.completed && t.dueDate && t.dueDate < todayStr).length;
+  const overdue = activeTasks.filter(t => t.dueDate && getUrgency(t) === 'overdue').length;
   const completed = activeTasks.filter(t => t.completed).length;
   const total = activeTasks.length;
 
@@ -20,7 +19,7 @@ export default function QuickStatsRow() {
     { icon: BookOpen, label: 'Courses', value: activeCourses.length, to: '/grades', chip: 'bg-primary/12 text-primary', val: 'text-base-content' },
     { icon: Clock, label: 'Classes today', value: classesToday, to: '/timetable', chip: 'bg-info/12 text-info', val: 'text-base-content' },
     { icon: CheckSquare, label: 'Tasks done', value: `${completed}/${total}`, to: '/planner', chip: 'bg-success/12 text-success', val: 'text-base-content' },
-    { icon: AlertTriangle, label: 'Overdue', value: overdue, to: '/planner', chip: overdue > 0 ? 'bg-error/12 text-error' : 'bg-base-content/8 text-base-content/40', val: overdue > 0 ? 'text-error' : 'text-base-content/50' },
+    { icon: AlertTriangle, label: 'Overdue', value: overdue, to: '/planner?filter=overdue', chip: overdue > 0 ? 'bg-error/12 text-error' : 'bg-base-content/8 text-base-content/40', val: overdue > 0 ? 'text-error' : 'text-base-content/50' },
   ];
 
   return (
