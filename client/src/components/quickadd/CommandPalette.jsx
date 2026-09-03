@@ -73,11 +73,9 @@ export default function CommandPalette() {
       </button>
 
       <Modal isOpen={open} onClose={close} title="Quick add" size="md">
-        {quickAdd.status === 'preview' && quickAdd.parsed ? (
+        {quickAdd.status === 'preview' && quickAdd.items?.length ? (
           <QuickAddPreview
-            parsed={quickAdd.parsed}
-            course={quickAdd.course}
-            gradeCategory={quickAdd.gradeCategory}
+            items={quickAdd.items}
             canCommit={quickAdd.canCommit}
             onBack={quickAdd.reset}
             onCommit={() => { quickAdd.commit(); close(); }}
@@ -203,12 +201,12 @@ function Row({ k, v }) {
   );
 }
 
-function QuickAddPreview({ parsed, course, gradeCategory, canCommit, onBack, onCommit }) {
-  const meta = KIND_META[parsed.kind] || KIND_META.task;
+function PreviewItem({ item, course, gradeCategory, committable }) {
+  const meta = KIND_META[item.kind] || KIND_META.task;
   const Icon = meta.icon;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
         <Icon size={18} className={meta.accent} />
         <span className="font-semibold">{meta.label}</span>
@@ -218,39 +216,47 @@ function QuickAddPreview({ parsed, course, gradeCategory, canCommit, onBack, onC
       </div>
 
       <div className="pill rounded-2xl px-4 py-2">
-        {parsed.kind === 'task' && (
+        {item.kind === 'task' && (
           <>
-            <Row k="Title" v={parsed.title} />
-            <Row k="Type" v={parsed.taskType} />
-            <Row k="Due" v={parsed.dueDate ? `${parsed.dueDate}${parsed.dueTime && parsed.dueTime !== '23:59' ? ` · ${parsed.dueTime}` : ''}` : 'No date'} />
-            <Row k="Priority" v={parsed.priority} />
+            <Row k="Title" v={item.title} />
+            <Row k="Type" v={item.taskType} />
+            <Row k="Due" v={item.dueDate ? `${item.dueDate}${item.dueTime && item.dueTime !== '23:59' ? ` · ${item.dueTime}` : ''}` : 'No date'} />
+            <Row k="Priority" v={item.priority} />
           </>
         )}
-        {parsed.kind === 'grade' && (
+        {item.kind === 'grade' && (
           <>
-            <Row k="Category" v={parsed.category} />
-            <Row k="Score" v={parsed.score !== undefined ? `${parsed.score} / ${parsed.maxScore}` : undefined} />
-            {parsed.label && <Row k="Label" v={parsed.label} />}
+            <Row k="Category" v={gradeCategory ? item.category : item.category ? `${item.category} (new)` : undefined} />
+            <Row k="Score" v={item.score !== undefined ? `${item.score} / ${item.maxScore}` : undefined} />
+            {item.label && <Row k="Label" v={item.label} />}
           </>
         )}
-        {parsed.kind === 'class' && (
+        {item.kind === 'class' && (
           <>
-            <Row k="Day" v={parsed.dayOfWeek !== undefined ? dayFullName(parsed.dayOfWeek) : undefined} />
-            <Row k="Time" v={parsed.startTime ? `${parsed.startTime} – ${parsed.endTime}` : undefined} />
-            <Row k="Type" v={parsed.classType} />
-            <Row k="Location" v={parsed.location} />
+            <Row k="Day" v={item.dayOfWeek !== undefined ? dayFullName(item.dayOfWeek) : undefined} />
+            <Row k="Time" v={item.startTime ? `${item.startTime} – ${item.endTime}` : undefined} />
+            <Row k="Type" v={item.classType} />
+            <Row k="Location" v={item.location} />
           </>
         )}
       </div>
 
-      {parsed.kind === 'grade' && !gradeCategory && (
+      {!committable && (
         <p className="text-xs text-warning/90 flex items-start gap-1.5 px-1">
           <AlertCircle size={14} className="shrink-0 mt-0.5" />
-          {course
-            ? `No category named "${parsed.category || '—'}" in ${course.code || course.name}. Add that category on the course first, then re-add this grade.`
-            : 'Could not match a course for this grade. Mention the course code (e.g. "cs350") and try again.'}
+          Could not match a course for this grade — it will be skipped. Mention the course code (e.g. "cs350") and try again.
         </p>
       )}
+    </div>
+  );
+}
+
+function QuickAddPreview({ items, canCommit, onBack, onCommit }) {
+  return (
+    <div className="flex flex-col gap-4">
+      {items.map((r, i) => (
+        <PreviewItem key={i} {...r} />
+      ))}
 
       <div className="flex gap-3 pt-1">
         <button onClick={onBack} className="btn btn-ghost flex-1 gap-1.5">

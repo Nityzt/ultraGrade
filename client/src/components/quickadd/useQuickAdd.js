@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import axios from 'axios';
 import { useApp } from '../../context/AppContext.jsx';
 import { supabase } from '../../lib/supabase.js';
@@ -8,20 +8,22 @@ import { randomCourseColor } from '../../utils/colorHelpers.js';
 /**
  * NL quick-add ("essay due next fri 20%" -> a dated task on the right course).
  * Posts to the JWT-protected /api/quick-add, then commits through existing
- * AppContext actions (addTask/addGrade/addTimetableEntry). Extracted from the
- * old standalone QuickAddBar so the CommandPalette can drive it as one row
- * among navigation/action items.
+ * AppContext actions (addTask/addGrade/addTimetableEntry/addCategory). The
+ * server may split one note into up to 5 items ("essay friday and quiz
+ * monday"), so state holds an array. Extracted from the old standalone
+ * QuickAddBar so the CommandPalette can drive it as one row among
+ * navigation/action items.
  */
 export function useQuickAdd() {
-  const { addTask, addTimetableEntry, addGrade, activeCourses, courses, activeSemester } = useApp();
+  const { addTask, addTimetableEntry, addGrade, addCategory, activeCourses, courses, activeSemester } = useApp();
 
   const [status, setStatus] = useState('idle'); // idle | loading | preview | error
-  const [parsed, setParsed] = useState(null);
+  const [items, setItems] = useState(null);
   const [error, setError] = useState('');
 
   const reset = useCallback(() => {
     setStatus('idle');
-    setParsed(null);
+    setItems(null);
     setError('');
   }, []);
 
@@ -46,12 +48,19 @@ export function useQuickAdd() {
         `${API_BASE_URL}/api/quick-add`,
         {
           text: q,
-          courses: activeCourses.map((c) => ({ id: c.id, code: c.code, name: c.name })),
+          courses: activeCourses.map((c) => ({
+            id: c.id,
+            code: c.code,
+            name: c.name,
+            categories: (c.categories || []).map((cat) => cat.name),
+          })),
+          semesterStart: activeSemester.startDate || '',
+          semesterEnd: activeSemester.endDate || '',
         },
         { headers: { Authorization: `Bearer ${session.access_token}` } }
       );
       if (res.data.success) {
-        setParsed(res.data.data);
+        setItems(res.data.data);
         setStatus('preview');
       } else {
         throw new Error(res.data.error || 'Quick-add failed');
@@ -62,49 +71,63 @@ export function useQuickAdd() {
     }
   }, [activeSemester, activeCourses]);
 
-  const course = parsed?.courseId ? courses.find((c) => c.id === parsed.courseId) : null;
-
-  // For a grade, resolve the target category by name (case-insensitive).
-  const gradeCategory =
-    parsed?.kind === 'grade' && course
-      ? (course.categories || []).find(
-          (cat) => cat.name.toLowerCase() === (parsed.category || '').toLowerCase()
-        )
-      : null;
+  // Resolve each item's course + grade category (case-insensitive by name).
+  // A grade with a course but no matching category is still committable — the
+  // commit step auto-creates the category (weight from newCategoryWeight).
+  const resolved = useMemo(() => {
+    if (!items) return null;
+    return items.map((item) => {
+      const course = item.courseId ? courses.find((c) => c.id === item.courseId) : null;
+      const gradeCategory =
+        item.kind === 'grade' && course
+          ? (course.categories || []).find(
+              (cat) => cat.name.toLowerCase() === (item.category || '').toLowerCase()
+            )
+          : null;
+      const committable = !(item.kind === 'grade' && !course);
+      return { item, course, gradeCategory, committable };
+    });
+  }, [items, courses]);
 
   const commit = useCallback(() => {
-    if (!parsed) return;
-    if (parsed.kind === 'task') {
-      addTask({
-        title: parsed.title,
-        type: parsed.taskType || 'assignment',
-        dueDate: parsed.dueDate || '',
-        dueTime: parsed.dueTime || '23:59',
-        priority: parsed.priority || 'medium',
-        courseId: parsed.courseId || null,
-      });
-    } else if (parsed.kind === 'class') {
-      addTimetableEntry({
-        label: course ? `${course.code} ${parsed.classType || 'lecture'}` : (parsed.location || 'Class'),
-        courseId: parsed.courseId || null,
-        dayOfWeek: parsed.dayOfWeek,
-        startTime: parsed.startTime,
-        endTime: parsed.endTime,
-        location: parsed.location || '',
-        professor: course?.professor || '',
-        color: course?.color || randomCourseColor(),
-        type: parsed.classType || 'lecture',
-      });
-    } else if (parsed.kind === 'grade' && gradeCategory) {
-      addGrade(parsed.courseId, gradeCategory.id, {
-        label: parsed.label || parsed.category || 'Grade',
-        score: parsed.score,
-        maxScore: parsed.maxScore,
-      });
-    }
-  }, [parsed, course, gradeCategory, addTask, addTimetableEntry, addGrade]);
+    if (!resolved) return;
+    resolved.forEach(({ item, course, gradeCategory, committable }) => {
+      if (!committable) return;
+      if (item.kind === 'task') {
+        addTask({
+          title: item.title,
+          type: item.taskType || 'assignment',
+          dueDate: item.dueDate || '',
+          dueTime: item.dueTime || '23:59',
+          priority: item.priority || 'medium',
+          courseId: item.courseId || null,
+        });
+      } else if (item.kind === 'class') {
+        addTimetableEntry({
+          label: course ? `${course.code} ${item.classType || 'lecture'}` : (item.location || 'Class'),
+          courseId: item.courseId || null,
+          dayOfWeek: item.dayOfWeek,
+          startTime: item.startTime,
+          endTime: item.endTime,
+          location: item.location || '',
+          professor: course?.professor || '',
+          color: course?.color || randomCourseColor(),
+          type: item.classType || 'lecture',
+        });
+      } else if (item.kind === 'grade') {
+        // addCategory returns the created category synchronously (optimistic).
+        const category = gradeCategory
+          || addCategory(item.courseId, { name: item.category || 'Grade', weight: item.newCategoryWeight ?? 0 });
+        addGrade(item.courseId, category.id, {
+          label: item.label || item.category || 'Grade',
+          score: item.score,
+          maxScore: item.maxScore,
+        });
+      }
+    });
+  }, [resolved, addTask, addTimetableEntry, addGrade, addCategory]);
 
-  const canCommit = parsed && !(parsed.kind === 'grade' && !gradeCategory);
+  const canCommit = !!resolved?.some((r) => r.committable);
 
-  return { status, parsed, error, course, gradeCategory, submit, commit, canCommit, reset };
+  return { status, items: resolved, error, submit, commit, canCommit, reset };
 }

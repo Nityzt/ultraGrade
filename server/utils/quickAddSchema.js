@@ -2,12 +2,13 @@ import { z } from 'zod';
 
 /**
  * Validation for the untrusted JSON that Gemini returns for a natural-language
- * quick-add ("lab report due next fri, 20%" → structured task/grade/class).
+ * quick-add ("lab report due next fri, 20%" → 1–5 structured task/grade/class
+ * items).
  *
  * Like outlineSchema.js this is the trust boundary: coerce what we safely can,
- * normalise blanks to undefined, and throw only when the payload is unusable.
- * The result is discriminated by `kind`; irrelevant fields for a given kind are
- * simply pruned by the client when it commits.
+ * normalise blanks to undefined, drop individual bad items, and throw only when
+ * nothing usable survives. Each item is discriminated by `kind`; irrelevant
+ * fields for a given kind are simply pruned by the client when it commits.
  */
 
 const TIME = /^([01]?\d|2[0-3]):[0-5]\d$/;
@@ -34,7 +35,7 @@ const optionalTime = z
   .optional()
   .catch(undefined);
 
-const quickAddSchema = z
+const itemSchema = z
   .object({
     kind: z.enum(['task', 'grade', 'class']),
 
@@ -55,6 +56,9 @@ const quickAddSchema = z
     label: optionalText,
     score: z.coerce.number().min(0).optional().catch(undefined),
     maxScore: z.coerce.number().positive().optional().catch(undefined),
+    // Only meaningful for kind:'grade' when no existing category matched —
+    // the client uses it as the weight of the category it auto-creates.
+    newCategoryWeight: z.coerce.number().min(0).max(100).optional().catch(undefined),
 
     // class
     dayOfWeek: z.coerce.number().int().min(0).max(6).optional().catch(undefined),
@@ -78,27 +82,32 @@ function isUnusable(d) {
 }
 
 /**
- * Validate + normalise raw Gemini quick-add output.
+ * Validate + normalise raw Gemini quick-add output ({ items: [...] }).
+ * Invalid or unusable items are dropped individually; only an empty survivor
+ * list is an error.
  * @param {unknown} raw - JSON parsed from the model response
  * @param {string[]} [knownCourseIds] - ids the model was allowed to reference
- * @returns {Object} A clean, committable quick-add object
- * @throws {Error} When the payload is not usable
+ * @returns {Object[]} Clean, committable quick-add items (max 5)
+ * @throws {Error} When no item is usable
  */
 export function validateQuickAdd(raw, knownCourseIds = []) {
-  const result = quickAddSchema.safeParse(raw);
-  if (!result.success) {
+  const rawItems = Array.isArray(raw?.items) ? raw.items : [];
+  const items = rawItems.slice(0, 5).flatMap((item) => {
+    const result = itemSchema.safeParse(item);
+    if (!result.success) return [];
+    const data = result.data;
+
+    // Drop a courseId the model invented (or one no longer in the user's list).
+    if (data.courseId && !knownCourseIds.includes(data.courseId)) {
+      data.courseId = undefined;
+    }
+
+    return isUnusable(data) ? [] : [pruneUndefined(data)];
+  });
+
+  if (items.length === 0) {
     throw new Error('Could not understand that — try rephrasing with a bit more detail.');
   }
-  const data = result.data;
 
-  // Drop a courseId the model invented (or one no longer in the user's list).
-  if (data.courseId && !knownCourseIds.includes(data.courseId)) {
-    data.courseId = undefined;
-  }
-
-  if (isUnusable(data)) {
-    throw new Error('Not enough detail to add that. Include a title, a grade, or a day + time.');
-  }
-
-  return pruneUndefined(data);
+  return items;
 }

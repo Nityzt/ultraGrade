@@ -5,9 +5,9 @@ import { validateQuickAdd } from './quickAddSchema.js';
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const MODEL = 'gemini-2.5-flash'; // 2.0-flash reports free-tier limit: 0 — see CLAUDE.md §11
 
-// Flat structured-output schema covering all three kinds; the client keeps only
+// Flat structured-output shape covering all three kinds; the client keeps only
 // the fields relevant to `kind` when it commits.
-const RESPONSE_SCHEMA = {
+const ITEM_SCHEMA = {
   type: SchemaType.OBJECT,
   properties: {
     kind: { type: SchemaType.STRING, enum: ['task', 'grade', 'class'], format: 'enum' },
@@ -23,6 +23,7 @@ const RESPONSE_SCHEMA = {
     label: { type: SchemaType.STRING },
     score: { type: SchemaType.NUMBER },
     maxScore: { type: SchemaType.NUMBER },
+    newCategoryWeight: { type: SchemaType.NUMBER },
     // class
     dayOfWeek: { type: SchemaType.INTEGER },
     startTime: { type: SchemaType.STRING },
@@ -33,18 +34,34 @@ const RESPONSE_SCHEMA = {
   required: ['kind'],
 };
 
-function buildPrompt({ courses, currentDate }) {
+// The 1–5 bound lives in the prompt + Zod slice — the SDK's schema dialect has
+// no minItems/maxItems.
+const RESPONSE_SCHEMA = {
+  type: SchemaType.OBJECT,
+  properties: {
+    items: { type: SchemaType.ARRAY, items: ITEM_SCHEMA },
+  },
+  required: ['items'],
+};
+
+function buildPrompt({ courses, currentDate, semesterStart, semesterEnd }) {
   const courseLines = (courses || [])
-    .map((c) => `  - id="${c.id}" code="${c.code || ''}" name="${c.name || ''}"`)
+    .map((c) => `  - id="${c.id}" code="${c.code || ''}" name="${c.name || ''}" categories="${(c.categories || []).join(', ')}"`)
     .join('\n') || '  (none)';
 
-  return `You convert one short natural-language note from a student into a single structured item for their planner.
+  const semLine = semesterStart || semesterEnd
+    ? `\nSEMESTER CONTEXT: the current term runs ${semesterStart || '(unknown start)'} to ${semesterEnd || '(unknown end)'}.`
+    : '';
 
-Today's date is ${currentDate} (use it to resolve relative dates like "tomorrow", "next friday", "in 2 weeks").
+  return `You convert one short natural-language note from a student into structured items for their planner.
 
-Classify the note into exactly one "kind":
+Return 1 to 5 items. Split compound notes ("essay Friday and quiz Monday") into separate items. Expand multi-day classes ("MWF 10-11") into one class item per day.
+
+Today's date is ${currentDate} (use it to resolve relative dates like "tomorrow", "next friday", "in 2 weeks").${semLine}
+
+Classify each item into exactly one "kind":
 - "task": an assignment, exam, quiz, project, or personal to-do with a deadline. Fill: title, taskType, dueDate (YYYY-MM-DD), dueTime (HH:MM, 24h; default "23:59" if only a day is given), priority.
-- "grade": a mark the student received. Fill: category (the assessment category name, e.g. "Midterm", "Assignment 1"), label, score (number), maxScore (number). "got 85%" → score 85, maxScore 100. "18/20" → score 18, maxScore 20.
+- "grade": a mark the student received. Fill: category (the assessment category name, e.g. "Midterm", "Assignment 1"), label, score (number), maxScore (number). "got 85%" → score 85, maxScore 100. "18/20" → score 18, maxScore 20. category MUST be one of the listed category names for the matched course when any exist; if none fits, propose a sensible category name and set newCategoryWeight to its likely weight (a number 0-100).
 - "class": a recurring class meeting. Fill: dayOfWeek (INTEGER 0=Sunday … 6=Saturday), startTime, endTime (HH:MM 24h), location, classType (lecture/lab/tutorial).
 
 COURSE MATCHING — the student's courses are listed below. If the note references one (by code like "cs350"/"eecs 3311" or by name), set courseId to that course's EXACT id from the list. If no course clearly matches, set courseId to "".
@@ -52,7 +69,7 @@ Courses:
 ${courseLines}
 
 Rules:
-- Return the single best interpretation. Prefer "task" when a deadline is implied.
+- Return the best interpretation of each part of the note. Prefer "task" when a deadline is implied.
 - Only emit a dueDate you can justify from the note + today's date; if no date is stated or implied, omit it.
 - Do not invent a courseId that is not in the list above.
 
@@ -61,12 +78,14 @@ NOTE:
 }
 
 /**
- * Parse one natural-language quick-add note.
+ * Parse one natural-language quick-add note into 1–5 items.
  * @param {string} text - The raw note (e.g. "lab report due next fri 20%")
  * @param {Object} context
- * @param {Array<{id:string,code:string,name:string}>} context.courses
+ * @param {Array<{id:string,code:string,name:string,categories:string[]}>} context.courses
  * @param {string} context.currentDate - YYYY-MM-DD
- * @returns {Promise<Object>} validated quick-add item
+ * @param {string} [context.semesterStart] - YYYY-MM-DD
+ * @param {string} [context.semesterEnd] - YYYY-MM-DD
+ * @returns {Promise<Object[]>} validated quick-add items
  */
 export async function parseQuickAdd(text, context = {}) {
   const model = genAI.getGenerativeModel({

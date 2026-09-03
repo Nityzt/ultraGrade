@@ -3,9 +3,10 @@ import { parseQuickAdd } from '../utils/quickAddParser.js';
 
 const router = express.Router();
 
-// Cap how much text (and how many courses) we forward to Gemini.
+// Cap how much text (and how many courses/categories) we forward to Gemini.
 const MAX_TEXT = 500;
 const MAX_COURSES = 40;
+const MAX_CATEGORIES = 12;
 
 router.post('/', async (req, res) => {
   try {
@@ -15,11 +16,18 @@ router.post('/', async (req, res) => {
     const rawCourses = Array.isArray(req.body?.courses) ? req.body.courses.slice(0, MAX_COURSES) : [];
     const courses = rawCourses
       .filter((c) => c && typeof c.id === 'string')
-      .map((c) => ({ id: c.id, code: String(c.code || ''), name: String(c.name || '') }));
+      .map((c) => ({
+        id: c.id,
+        code: String(c.code || ''),
+        name: String(c.name || ''),
+        categories: (Array.isArray(c.categories) ? c.categories : []).slice(0, MAX_CATEGORIES).map(String),
+      }));
 
     const context = {
       courses,
       currentDate: new Date().toISOString().slice(0, 10),
+      semesterStart: String(req.body?.semesterStart || ''),
+      semesterEnd: String(req.body?.semesterEnd || ''),
     };
 
     const data = await parseQuickAdd(text.slice(0, MAX_TEXT), context);
