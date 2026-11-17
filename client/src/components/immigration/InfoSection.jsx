@@ -66,7 +66,7 @@ export default function InfoSection({ title, data, onRefresh, loading, icon: Ico
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <div className="glass-card overflow-hidden">
+    <div className="surface overflow-hidden">
       <button
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-base-content/5 transition-colors text-left"

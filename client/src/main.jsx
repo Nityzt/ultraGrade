@@ -6,13 +6,14 @@ import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { AppProvider } from './context/AppContext';
 import AppToaster from './components/ui/AppToaster.jsx';
 import App from './App';
+import '@fontsource-variable/hanken-grotesk/wght.css';
 import './index.css';
 
 function AuthLoadingGate({ children }) {
   const { loading } = useAuth();
   if (loading) {
     return (
-      <div className="min-h-screen bg-base-100 flex items-center justify-center">
+      <div className="min-h-dvh bg-base-100 flex items-center justify-center">
         <span className="loading loading-spinner loading-lg text-primary" />
       </div>
     );

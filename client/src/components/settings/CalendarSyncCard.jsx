@@ -80,7 +80,7 @@ export default function CalendarSyncCard() {
   };
 
   return (
-    <div className="glass-card">
+    <div className="surface">
       <div className="card-body p-4 space-y-4">
         <h2 className="font-semibold flex items-center gap-2">
           <CalendarClock size={16} className="text-primary" /> Calendar Sync

@@ -3,7 +3,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useApp } from './context/AppContext';
 import { useAuth } from './context/AuthContext.jsx';
 import Layout from './components/layout/Layout';
-import { isThemeSweepActive } from './hooks/useThemeTransition.js';
+import { applyThemeToDocument } from './hooks/useThemeTransition.js';
 
 // Login stays eager — it's the first paint for signed-out users. Everything
 // else is route-split so the initial bundle stays lean on mobile/PWA first
@@ -75,22 +75,11 @@ function DomesticOnly() {
 export default function App() {
   const { settings } = useApp();
 
-  // Reconcile the persisted theme onto <html> (initial load + external changes).
-  // Guarded so it never re-writes a value the theme-transition hook already applied
-  // mid-sweep — a redundant write would desync the active reveal.
+  // Reconcile the persisted theme onto <html> (initial load + external
+  // changes, e.g. settings loaded from another device). Unknown/legacy themes
+  // fall back to dark.
   useEffect(() => {
-    // Never write while a sweep is composing: this effect fires from the
-    // sweep's own debounced persist, and a setAttribute outside the transition
-    // callback mutates the live page mid-reveal. The sweep's finish handler
-    // settles the attribute itself.
-    if (isThemeSweepActive()) return;
-    // Coerce any removed/legacy theme (e.g. the retired 'ultragrade-dark') to the
-    // default so a returning user never lands on a theme that no longer exists.
-    const valid = ['ultragrade-classic', 'ultragrade-light'];
-    const next = valid.includes(settings.theme) ? settings.theme : 'ultragrade-classic';
-    if (document.documentElement.getAttribute('data-theme') !== next) {
-      document.documentElement.setAttribute('data-theme', next);
-    }
+    applyThemeToDocument(settings.theme);
   }, [settings.theme]);
 
   return (

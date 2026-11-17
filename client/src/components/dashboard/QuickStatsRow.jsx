@@ -28,7 +28,7 @@ export default function QuickStatsRow() {
         <Link
           key={label}
           to={to}
-          className="glass-card glass-hover p-4 flex items-center gap-3.5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-[24px]"
+          className="surface surface-hover p-4 flex items-center gap-3.5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-[24px]"
         >
           <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-105 ${chip}`}>
             <Icon size={19} />

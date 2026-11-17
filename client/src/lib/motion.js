@@ -7,7 +7,7 @@
  */
 
 // House curve — strong initial acceleration then a long calm settle. Same
-// bezier used in `.glass-card`, `.pressable`, `.page-enter`, and CategoryRow's
+// bezier used in `.surface`, `.pressable`, `.page-enter`, and CategoryRow's
 // width transition. Never use easeInOut for exits (they feel sluggish); use
 // EASE for both, and clip exits ~30% shorter than enters.
 export const EASE = [0.22, 1, 0.36, 1];

@@ -126,7 +126,7 @@ export default function Settings() {
           {/* Left column: Profile + School */}
           <div className="space-y-4 animate-fade-up">
             {/* Profile */}
-            <div className="glass-card">
+            <div className="surface">
               <div className="card-body p-4 space-y-3">
                 <h2 className="font-semibold flex items-center gap-2"><User size={16} className="text-primary" /> Profile</h2>
                 <div className="form-control">
@@ -157,7 +157,7 @@ export default function Settings() {
             </div>
 
             {/* School */}
-            <div className="glass-card">
+            <div className="surface">
               <div className="card-body p-4 space-y-3">
                 <h2 className="font-semibold flex items-center gap-2"><Globe size={16} className="text-primary" /> School</h2>
                 <div className="form-control">
@@ -191,7 +191,7 @@ export default function Settings() {
 
           {/* Right column: Display + Danger Zone (balances height against the left column so the page fits without a blank gap) */}
           <div className="space-y-4 animate-fade-up" style={{ animationDelay: '80ms' }}>
-            <div className="glass-card">
+            <div className="surface">
               <div className="card-body p-4 space-y-3">
                 <h2 className="font-semibold flex items-center gap-2"><Palette size={16} className="text-primary" /> Display</h2>
                 <div className="form-control">
@@ -239,7 +239,7 @@ export default function Settings() {
               </div>
             </div>
 
-            <div className="glass-card">
+            <div className="surface">
               <div className="card-body p-4 space-y-3">
                 <h2 className="font-semibold flex items-center gap-2"><Sparkles size={16} className="text-primary" /> AI privacy</h2>
                 <p className="text-sm text-base-content/60">Outline imports send the selected document to Gemini for extraction. ultraGrade does not retain the uploaded file.</p>
@@ -252,7 +252,7 @@ export default function Settings() {
               </div>
             </div>
 
-            <div className="glass-card !border-error/30">
+            <div className="surface !border-error/30">
               <div className="card-body p-4 space-y-3">
                 <h2 className="font-semibold text-error">Danger Zone</h2>
 

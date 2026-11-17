@@ -90,7 +90,7 @@ function BreathingOrb() {
       {/* Thin orbit ring — one quiet accent, not decoration spam */}
       <motion.div
         className="absolute w-40 h-40 rounded-full border"
-        style={{ borderColor: 'oklch(from var(--p) l c h / 0.22)' }}
+        style={{ borderColor: 'oklch(var(--p) / 0.22)' }}
         animate={{ scale: [1, 1.08, 1], opacity: [0.4, 0.7, 0.4] }}
         transition={{ duration: 6, ease: 'easeInOut', repeat: Infinity, delay: 0.4 }}
       />
@@ -253,7 +253,7 @@ export default function WelcomeIntro({ onDone }) {
                   {panel.features.map(({ Icon, label, hint }, i) => (
                     <div
                       key={label}
-                      className="flex items-start gap-3.5 glass-card px-4 py-3 animate-fade-up"
+                      className="flex items-start gap-3.5 surface px-4 py-3 animate-fade-up"
                       style={{ animationDelay: `${120 + i * 90}ms` }}
                     >
                       <span className="mt-0.5 w-8 h-8 shrink-0 rounded-xl bg-primary/12 text-primary flex items-center justify-center">
@@ -280,7 +280,7 @@ export default function WelcomeIntro({ onDone }) {
                         className="group pressable relative rounded-2xl p-4 text-left transition-[outline,box-shadow] duration-200"
                         style={{
                           background: choice.bg,
-                          outline: active ? `2px solid ${choice.fg}` : '1px solid oklch(from var(--bc) l c h / 0.14)',
+                          outline: active ? `2px solid ${choice.fg}` : '1px solid oklch(var(--bc) / 0.14)',
                           outlineOffset: active ? '2px' : '0px',
                           boxShadow: active ? `0 0 22px ${choice.ring}` : 'none',
                         }}

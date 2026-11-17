@@ -2,7 +2,7 @@ import { ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export function Surface({ className = '', elevated = false, children }) {
-  return <section className={`command-surface ${elevated ? 'command-surface-focus' : ''} ${className}`}>{children}</section>;
+  return <section className={`surface ${elevated ? 'surface-accent' : ''} ${className}`}>{children}</section>;
 }
 
 export function StatusPill({ children, tone = 'default', className = '' }) {

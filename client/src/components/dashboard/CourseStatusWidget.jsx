@@ -24,7 +24,7 @@ export default function CourseStatusWidget() {
   const { activeCourses } = useApp();
 
   return (
-    <div className="glass-card glass-hover h-full p-6 md:p-7 flex flex-col">
+    <div className="surface surface-hover h-full p-6 md:p-7 flex flex-col">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-base-content/45">Course Mastery</h3>
         <Link to="/grades" className="text-[11px] text-primary hover:text-primary/70 font-medium">Manage →</Link>

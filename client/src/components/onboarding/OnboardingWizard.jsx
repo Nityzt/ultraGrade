@@ -100,7 +100,7 @@ export default function OnboardingWizard({ demo = false, onFinish: onDemoFinish 
           </span>
         </div>
 
-        <div className="glass-card rounded-3xl p-6 sm:p-8 min-h-[22rem] flex flex-col">
+        <div className="surface rounded-3xl p-6 sm:p-8 min-h-[22rem] flex flex-col">
           <AnimatePresence mode="wait">
             <motion.div
               key={step}

@@ -120,7 +120,7 @@ export default function CourseCard({ course, onEdit, highlighted, onHighlightEnd
     <motion.div
       layout
       id={'course-' + course.id}
-      className={`glass-card glass-hover overflow-hidden ${highlighted ? 'course-highlight' : ''}`}
+      className={`surface surface-hover overflow-hidden ${highlighted ? 'course-highlight' : ''}`}
       onAnimationEnd={highlighted ? onHighlightEnd : undefined}
     >
       <div className="card-body p-4 gap-3">

@@ -82,7 +82,7 @@ export default function TaskItem({ task, onEdit, onDelete }) {
       }}
       transition={{ duration: 0.25, ease: EASE }}
       style={{ overflow: 'hidden' }}
-      className={`flex items-start gap-3 p-3.5 mb-2 glass-card border-l-4 group ${urgencyBg} transition-opacity duration-300 ${done ? 'opacity-50' : ''}`}
+      className={`flex items-start gap-3 p-3.5 mb-2 surface border-l-4 group ${urgencyBg} transition-opacity duration-300 ${done ? 'opacity-50' : ''}`}
     >
       {/* Checkbox */}
       <motion.button

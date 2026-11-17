@@ -40,7 +40,7 @@ export default function UpcomingDeadlinesWidget() {
     .slice(0, 5);
 
   return (
-    <div className="glass-card glass-hover h-full p-6 flex flex-col">
+    <div className="surface surface-hover h-full p-6 flex flex-col">
       <div className="flex items-center justify-between mb-5">
         <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-base-content/45">Deadlines</h3>
         <Link to="/planner" className="text-[11px] text-primary hover:text-primary/70 font-medium">View all →</Link>

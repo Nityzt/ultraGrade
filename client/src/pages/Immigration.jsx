@@ -68,7 +68,7 @@ export default function Immigration() {
 
       <div className="p-4 md:p-6 space-y-6">
       {/* Disclaimer */}
-      <div className="glass-card p-4 flex items-start gap-3 border-l-4 border-l-warning animate-fade-up">
+      <div className="surface p-4 flex items-start gap-3 border-l-4 border-l-warning animate-fade-up">
         <span className="shrink-0 w-9 h-9 rounded-2xl bg-warning/15 text-warning flex items-center justify-center">
           <AlertTriangle size={18} />
         </span>
@@ -80,7 +80,7 @@ export default function Immigration() {
 
       {/* Permit expiry reminder */}
       {settings.permitExpiryDate && (
-        <div className="glass-card p-4 flex items-center gap-3 text-sm animate-fade-up" style={{ animationDelay: '60ms' }}>
+        <div className="surface p-4 flex items-center gap-3 text-sm animate-fade-up" style={{ animationDelay: '60ms' }}>
           <Shield size={20} className="text-primary flex-shrink-0" />
           <div>
             <span className="font-medium">Your study permit expiry: </span>

@@ -5,7 +5,7 @@ import { useThemeTransition } from '../../hooks/useThemeTransition.js';
 /**
  * Sonner styled to match the app's glass surface — replaces the old
  * hand-rolled ToastProvider. `unstyled: true` strips Sonner's own
- * background/border/layout so `.glass-card` fully controls the look; the
+ * background/border/layout so `.surface` fully controls the look; the
  * close button loses its default absolute positioning when unstyled (it's
  * DOM-first, before the icon), so it's pushed to the end of the flex row
  * with `order-last` instead.
@@ -31,7 +31,7 @@ export default function AppToaster() {
         unstyled: true,
         classNames: {
           toast:
-            'glass-card w-full flex items-start gap-3 px-4 py-3 shadow-ambient pointer-events-auto',
+            'surface w-full flex items-start gap-3 px-4 py-3 shadow-ambient pointer-events-auto',
           icon: 'shrink-0 mt-0.5',
           content: 'flex-1',
           title: 'text-sm text-base-content leading-snug',

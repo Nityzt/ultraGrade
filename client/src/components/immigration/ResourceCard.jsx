@@ -6,7 +6,7 @@ export default function ResourceCard({ title, description, url, icon: Icon, badg
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="glass-card glass-hover cursor-pointer group"
+      className="surface surface-hover cursor-pointer group"
     >
       <div className="p-4 flex flex-row items-start gap-3">
         {Icon && (

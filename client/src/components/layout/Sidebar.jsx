@@ -70,7 +70,7 @@ function SemesterSelector() {
       {open && (
         <ul
           role="listbox"
-          className="absolute z-50 mt-1.5 w-full glass-card rounded-2xl p-1.5 max-h-72 overflow-y-auto animate-fade-up"
+          className="absolute z-50 mt-1.5 w-full surface rounded-2xl p-1.5 max-h-72 overflow-y-auto animate-fade-up"
           style={{ animationDuration: '0.18s' }}
         >
           {semesters.map(s => {

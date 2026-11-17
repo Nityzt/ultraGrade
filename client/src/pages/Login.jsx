@@ -488,7 +488,7 @@ export default function Login() {
           </div>
         </div>
 
-        <div className="glass-card shadow-2xl animate-fade-up" style={stagger(2)}>
+        <div className="surface shadow-2xl animate-fade-up" style={stagger(2)}>
           <div className="card-body gap-5 p-8">
             {/* Pill tab switcher — sliding highlight via shared layoutId */}
             <div className="relative flex gap-1 p-1 bg-base-300/40 rounded-2xl">

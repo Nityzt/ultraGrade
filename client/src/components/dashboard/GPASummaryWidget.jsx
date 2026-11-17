@@ -26,7 +26,7 @@ export default function GPASummaryWidget() {
     .slice(0, 9);
 
   return (
-    <div className="glass-card glass-hover h-full p-6 md:p-7 flex flex-col relative overflow-hidden">
+    <div className="surface surface-hover h-full p-6 md:p-7 flex flex-col relative overflow-hidden">
       {/* ambient sage bloom */}
       <div className="absolute -right-12 -top-14 w-52 h-52 rounded-full bg-primary/15 blur-[46px] pointer-events-none" />
 

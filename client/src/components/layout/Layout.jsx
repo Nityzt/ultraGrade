@@ -6,11 +6,9 @@ import OfflineIndicator from '../ui/OfflineIndicator.jsx';
 import InstallPrompt from '../pwa/InstallPrompt.jsx';
 import SyncErrorBridge from './SyncErrorBridge.jsx';
 import CommandPalette from '../quickadd/CommandPalette.jsx';
-import { useCardSpotlight } from '../../hooks/useCardSpotlight.js';
 import { useApp } from '../../context/AppContext.jsx';
 
 export default function Layout({ demo = false }) {
-  useCardSpotlight();
   const location = useLocation();
   const { settings, activeSemester } = useApp();
   const showMobileIdentity = location.pathname === (demo ? '/demo' : '/');
