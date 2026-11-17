@@ -6,7 +6,7 @@ import { today, nextOccurrenceOfDay } from '../../utils/dateHelpers.js';
 
 export default function AddTaskModal({ isOpen, onClose, editingTask }) {
   const { addTask, updateTask, activeCourses, timetableEntries } = useApp();
-  const { register, handleSubmit, reset, watch, setValue } = useForm();
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm();
   // Tracks whether the user has manually touched the date field this session —
   // once true, the course-linked smart-default stops overwriting their choice.
   const [dateTouched, setDateTouched] = useState(false);
@@ -48,6 +48,7 @@ export default function AddTaskModal({ isOpen, onClose, editingTask }) {
         <div className="form-control">
           <label className="label"><span className="label-text">Title</span></label>
           <input {...register('title', { required: true })} className="input input-bordered input-sm" placeholder="Assignment 2 — UML Diagrams" />
+          {errors.title && <span className="text-error text-xs mt-1">Enter a title.</span>}
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -88,6 +89,7 @@ export default function AddTaskModal({ isOpen, onClose, editingTask }) {
               {...register('dueDate', { required: true, onChange: () => setDateTouched(true) })}
               type="date" className="input input-bordered input-sm"
             />
+            {errors.dueDate && <span className="text-error text-xs mt-1">Choose a due date.</span>}
           </div>
           <div className="form-control">
             <label className="label"><span className="label-text">Due Time</span></label>

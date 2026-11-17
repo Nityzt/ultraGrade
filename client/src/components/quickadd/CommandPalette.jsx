@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Command } from 'cmdk';
 import {
   Sparkles, Loader, AlertCircle, CornerDownLeft, CheckSquare, GraduationCap,
-  CalendarClock, X, LayoutDashboard, Calendar, ClipboardList, Globe, BookOpen,
+  CalendarClock, X, LayoutDashboard, Calendar, ClipboardList, Globe,
   Settings as SettingsIcon, Download, Plus, Check,
 } from 'lucide-react';
 import Modal from '../ui/Modal.jsx';
@@ -11,6 +11,7 @@ import { useApp } from '../../context/AppContext.jsx';
 import { useThemeTransition } from '../../hooks/useThemeTransition.js';
 import { useQuickAdd } from './useQuickAdd.js';
 import { dayFullName } from '../../utils/dateHelpers.js';
+import DemoAssistant from '../demo/DemoAssistant.jsx';
 
 /**
  * Unified ⌘K palette: free-text AI quick-add (task/grade/class, via
@@ -20,7 +21,8 @@ import { dayFullName } from '../../utils/dateHelpers.js';
  * the top whenever the input is non-empty, letting Enter submit it by
  * default exactly like the old plain-input flow.
  */
-export default function CommandPalette() {
+export default function CommandPalette({ demo = false }) {
+  if (demo) return <DemoAssistant />;
   const navigate = useNavigate();
   const { activeCourses, semesters, activeSemester, setActiveSemester, settings } = useApp();
   const { meta, nextMeta, toggle } = useThemeTransition();
@@ -40,6 +42,12 @@ export default function CommandPalette() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  useEffect(() => {
+    const openAssistant = () => setOpen(true);
+    window.addEventListener('ug:assistant', openAssistant);
+    return () => window.removeEventListener('ug:assistant', openAssistant);
   }, []);
 
   const close = useCallback(() => {
@@ -64,15 +72,15 @@ export default function CommandPalette() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Quick add (Command K)"
-        className="fixed z-30 bottom-24 md:bottom-6 right-5 md:right-6 btn btn-primary rounded-full shadow-bloom gap-2 transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_30px_var(--bloom-color,rgba(181,205,183,0.4))] active:scale-95"
+        aria-label="Ask ultraGrade (Command K)"
+        className="assistant-fab fixed z-30 bottom-24 md:bottom-6 right-5 md:right-6 btn btn-primary rounded-full gap-2 active:scale-95"
       >
         <Sparkles size={16} />
-        <span className="hidden sm:inline">Quick add</span>
+        <span className="hidden sm:inline">Ask ultraGrade</span>
         <kbd className="hidden md:inline text-[10px] font-mono opacity-70 border border-primary-content/30 rounded px-1">⌘K</kbd>
       </button>
 
-      <Modal isOpen={open} onClose={close} title="Quick add" size="md">
+      <Modal isOpen={open} onClose={close} title="Ask ultraGrade" size="md">
         {quickAdd.status === 'preview' && quickAdd.items?.length ? (
           <QuickAddPreview
             items={quickAdd.items}
@@ -81,14 +89,14 @@ export default function CommandPalette() {
             onCommit={() => { quickAdd.commit(); close(); }}
           />
         ) : (
-          <Command shouldFilter loop label="Quick add and command palette" className="flex flex-col gap-3">
+          <Command shouldFilter loop label="Ask ultraGrade and command palette" className="flex flex-col gap-3">
             <div className="flex items-center gap-2 rounded-2xl border border-base-300 bg-base-100/50 px-3 focus-within:border-primary transition-colors">
               <Sparkles size={18} className="text-primary shrink-0" />
               <Command.Input
                 ref={inputRef}
                 value={text}
                 onValueChange={(v) => { setText(v); if (quickAdd.status === 'error') quickAdd.reset(); }}
-                placeholder="e.g. essay due next friday 20%  ·  or jump to a page, add a course…"
+                placeholder="Ask about a deadline, add a task, or jump to a space…"
                 className="input w-full bg-transparent border-0 focus:outline-none px-1"
                 aria-label="Search or describe what to add"
                 disabled={quickAdd.status === 'loading'}
@@ -118,19 +126,22 @@ export default function CommandPalette() {
                     className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm cursor-pointer aria-selected:bg-primary/12 aria-selected:text-primary"
                   >
                     <Sparkles size={15} className="shrink-0 text-primary" />
-                    <span className="truncate">Quick-add with AI: <span className="font-medium">"{text}"</span></span>
+                    <span className="truncate">Preview an action for: <span className="font-medium">"{text}"</span></span>
                   </Command.Item>
                 )}
 
                 <Command.Group heading="Navigate" className={GROUP_CLASS}>
-                  <PaletteItem icon={LayoutDashboard} label="Dashboard" onSelect={() => go('/')} />
+                  <PaletteItem icon={LayoutDashboard} label="Home" onSelect={() => go('/')} />
+                  <PaletteItem icon={Sparkles} label="Ask ultraGrade" onSelect={() => go('/ask')} />
+                  <PaletteItem icon={Globe} label="Life Hub" onSelect={() => go('/life')} />
+                  <PaletteItem icon={Calendar} label="Connections" onSelect={() => go('/connections')} />
+                  <PaletteItem icon={SettingsIcon} label="Profile" onSelect={() => go('/profile')} />
+                </Command.Group>
+
+                <Command.Group heading="Academic details" className={GROUP_CLASS}>
                   <PaletteItem icon={GraduationCap} label="Grades" onSelect={() => go('/grades')} />
-                  <PaletteItem icon={Calendar} label="Timetable" onSelect={() => go('/timetable')} />
                   <PaletteItem icon={ClipboardList} label="Planner" onSelect={() => go('/planner')} />
-                  {settings.studentType === 'international'
-                    ? <PaletteItem icon={Globe} label="Immigration" onSelect={() => go('/immigration')} />
-                    : <PaletteItem icon={BookOpen} label="Student Resources" onSelect={() => go('/resources')} />}
-                  <PaletteItem icon={SettingsIcon} label="Settings" onSelect={() => go('/settings')} />
+                  <PaletteItem icon={Calendar} label="Timetable" onSelect={() => go('/timetable')} />
                 </Command.Group>
 
                 <Command.Group heading="Actions" className={GROUP_CLASS}>
@@ -201,8 +212,11 @@ function Row({ k, v }) {
   );
 }
 
-function PreviewItem({ item, course, gradeCategory, committable }) {
-  const meta = KIND_META[item.kind] || KIND_META.task;
+function PreviewItem({ item, course, gradeCategory, task, committable }) {
+  const isEdit = item.action === 'complete_task' || item.action === 'reschedule_task';
+  const meta = isEdit
+    ? { icon: item.action === 'complete_task' ? Check : CalendarClock, label: item.action === 'complete_task' ? 'Complete task' : 'Reschedule task', accent: 'text-primary' }
+    : KIND_META[item.kind] || KIND_META.task;
   const Icon = meta.icon;
 
   return (
@@ -216,7 +230,15 @@ function PreviewItem({ item, course, gradeCategory, committable }) {
       </div>
 
       <div className="pill rounded-2xl px-4 py-2">
-        {item.kind === 'task' && (
+        {isEdit && (
+          <>
+            <Row k="Task" v={task?.title || 'Unknown task'} />
+            {item.action === 'reschedule_task' && (
+              <Row k="New due" v={item.dueDate ? `${item.dueDate}${item.dueTime && item.dueTime !== '23:59' ? ` · ${item.dueTime}` : ''}` : undefined} />
+            )}
+          </>
+        )}
+        {!isEdit && item.kind === 'task' && (
           <>
             <Row k="Title" v={item.title} />
             <Row k="Type" v={item.taskType} />
@@ -224,14 +246,14 @@ function PreviewItem({ item, course, gradeCategory, committable }) {
             <Row k="Priority" v={item.priority} />
           </>
         )}
-        {item.kind === 'grade' && (
+        {!isEdit && item.kind === 'grade' && (
           <>
             <Row k="Category" v={gradeCategory ? item.category : item.category ? `${item.category} (new)` : undefined} />
             <Row k="Score" v={item.score !== undefined ? `${item.score} / ${item.maxScore}` : undefined} />
             {item.label && <Row k="Label" v={item.label} />}
           </>
         )}
-        {item.kind === 'class' && (
+        {!isEdit && item.kind === 'class' && (
           <>
             <Row k="Day" v={item.dayOfWeek !== undefined ? dayFullName(item.dayOfWeek) : undefined} />
             <Row k="Time" v={item.startTime ? `${item.startTime} – ${item.endTime}` : undefined} />
@@ -244,14 +266,16 @@ function PreviewItem({ item, course, gradeCategory, committable }) {
       {!committable && (
         <p className="text-xs text-warning/90 flex items-start gap-1.5 px-1">
           <AlertCircle size={14} className="shrink-0 mt-0.5" />
-          Could not match a course for this grade — it will be skipped. Mention the course code (e.g. "cs350") and try again.
+          {isEdit
+            ? 'That task is no longer open, so this change will be skipped.'
+            : 'Could not match a course for this grade — it will be skipped. Mention the course code (e.g. "cs350") and try again.'}
         </p>
       )}
     </div>
   );
 }
 
-function QuickAddPreview({ items, canCommit, onBack, onCommit }) {
+export function QuickAddPreview({ items, canCommit, onBack, onCommit }) {
   return (
     <div className="flex flex-col gap-4">
       {items.map((r, i) => (

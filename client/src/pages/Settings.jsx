@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { useEffect, useState } from 'react';
 import { ONTARIO_UNIVERSITIES, getDefaultGpaScale } from '../data/universities';
 import { GPA_SCALES } from '../data/gpaScales';
-import { Palette, User, Globe, Book, Bell } from 'lucide-react';
+import { Palette, User, Globe, Book, Bell, Sparkles } from 'lucide-react';
 import { useThemeTransition, THEMES, THEME_META } from '../hooks/useThemeTransition.js';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import Header from '../components/layout/Header.jsx';
@@ -236,6 +236,19 @@ export default function Settings() {
                     <option value={1}>Monday</option>
                   </select>
                 </div>
+              </div>
+            </div>
+
+            <div className="glass-card">
+              <div className="card-body p-4 space-y-3">
+                <h2 className="font-semibold flex items-center gap-2"><Sparkles size={16} className="text-primary" /> AI privacy</h2>
+                <p className="text-sm text-base-content/60">Outline imports send the selected document to Gemini for extraction. ultraGrade does not retain the uploaded file.</p>
+                {settings.aiConsentVersion ? (
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs text-success">Consent granted</span>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => { updateSettings({ aiConsentVersion: null, aiConsentAt: null }); setValue('aiConsentVersion', null); setValue('aiConsentAt', null); }}>Revoke consent</button>
+                  </div>
+                ) : <span className="text-xs text-base-content/50">No AI upload consent is stored.</span>}
               </div>
             </div>
 

@@ -6,10 +6,12 @@ export default function ClassBlock({ entry, style, onClick }) {
   const border = entry.color || '#4ade80';
 
   return (
-    <div
+    <button
+      type="button"
       className="absolute rounded-xl px-2.5 py-1.5 cursor-pointer hover:opacity-90 transition-opacity overflow-hidden group"
       style={{ ...style, backgroundColor: bg, borderLeft: `3px solid ${border}` }}
       onClick={onClick}
+      aria-label={`${entry.label || 'Class'}, ${formatTime(entry.startTime)} to ${formatTime(entry.endTime)}${entry.location ? `, ${entry.location}` : ''}`}
     >
       <p className="text-xs font-semibold text-base-content truncate leading-tight">{entry.label}</p>
       <p className="text-[10px] text-base-content/60 truncate">{formatTime(entry.startTime)} – {formatTime(entry.endTime)}</p>
@@ -23,6 +25,6 @@ export default function ClassBlock({ entry, style, onClick }) {
         {entry.professor && <p className="text-base-content/60">{entry.professor}</p>}
         <span className="badge badge-xs badge-ghost mt-1">{entry.type}</span>
       </div>
-    </div>
+    </button>
   );
 }

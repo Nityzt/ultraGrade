@@ -13,6 +13,9 @@ import {
 // calcCategoryGrade
 // ---------------------------------------------------------------------------
 describe('calcCategoryGrade', () => {
+  it('ignores zero denominators and non-finite imported values', () => {
+    expect(calcCategoryGrade({ grades: [{ score: 80, maxScore: 0 }, { score: 'bad', maxScore: 100 }] })).toBeNull()
+  })
   it('returns null when no grades', () => {
     expect(calcCategoryGrade({ grades: [] })).toBeNull()
   })

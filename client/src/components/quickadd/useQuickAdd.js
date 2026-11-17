@@ -15,7 +15,7 @@ import { randomCourseColor } from '../../utils/colorHelpers.js';
  * navigation/action items.
  */
 export function useQuickAdd() {
-  const { addTask, addTimetableEntry, addGrade, addCategory, activeCourses, courses, activeSemester } = useApp();
+  const { addTask, addTimetableEntry, addGrade, addCategory, updateTask, activeCourses, activeTasks, courses, activeSemester } = useApp();
 
   const [status, setStatus] = useState('idle'); // idle | loading | preview | error
   const [items, setItems] = useState(null);
@@ -54,6 +54,12 @@ export function useQuickAdd() {
             name: c.name,
             categories: (c.categories || []).map((cat) => cat.name),
           })),
+          tasks: activeTasks.filter((t) => !t.completed).map((t) => ({
+            id: t.id,
+            title: t.title,
+            dueDate: t.dueDate,
+            courseCode: courses.find((c) => c.id === t.courseId)?.code || '',
+          })),
           semesterStart: activeSemester.startDate || '',
           semesterEnd: activeSemester.endDate || '',
         },
@@ -69,7 +75,7 @@ export function useQuickAdd() {
       setError(err.response?.data?.error || err.message || 'Could not add that.');
       setStatus('error');
     }
-  }, [activeSemester, activeCourses]);
+  }, [activeSemester, activeCourses, activeTasks, courses]);
 
   // Resolve each item's course + grade category (case-insensitive by name).
   // A grade with a course but no matching category is still committable — the
@@ -84,16 +90,22 @@ export function useQuickAdd() {
               (cat) => cat.name.toLowerCase() === (item.category || '').toLowerCase()
             )
           : null;
-      const committable = !(item.kind === 'grade' && !course);
-      return { item, course, gradeCategory, committable };
+      const isEdit = item.action === 'complete_task' || item.action === 'reschedule_task';
+      const task = isEdit ? activeTasks.find((t) => t.id === item.taskId) : null;
+      const committable = isEdit ? !!task : !(item.kind === 'grade' && !course);
+      return { item, course, gradeCategory, task, committable };
     });
-  }, [items, courses]);
+  }, [items, courses, activeTasks]);
 
   const commit = useCallback(() => {
     if (!resolved) return;
     resolved.forEach(({ item, course, gradeCategory, committable }) => {
       if (!committable) return;
-      if (item.kind === 'task') {
+      if (item.action === 'complete_task') {
+        updateTask(item.taskId, { completed: true, completedAt: new Date().toISOString() });
+      } else if (item.action === 'reschedule_task') {
+        updateTask(item.taskId, { dueDate: item.dueDate, dueTime: item.dueTime || '23:59' });
+      } else if (item.kind === 'task') {
         addTask({
           title: item.title,
           type: item.taskType || 'assignment',
@@ -125,7 +137,7 @@ export function useQuickAdd() {
         });
       }
     });
-  }, [resolved, addTask, addTimetableEntry, addGrade, addCategory]);
+  }, [resolved, addTask, addTimetableEntry, addGrade, addCategory, updateTask]);
 
   const canCommit = !!resolved?.some((r) => r.committable);
 

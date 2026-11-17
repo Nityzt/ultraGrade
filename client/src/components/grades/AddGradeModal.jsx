@@ -39,11 +39,13 @@ export default function AddGradeModal({ isOpen, onClose, courseId, categoryId, e
             <label className="label"><span className="label-text">Score</span></label>
             <input {...register('score', { required: true, min: 0, valueAsNumber: true })}
               type="number" step="0.01" className="input input-bordered input-sm" />
+            {errors.score && <span className="text-error text-xs mt-1">Enter a score of 0 or higher.</span>}
           </div>
           <div className="form-control">
             <label className="label"><span className="label-text">Out Of</span></label>
             <input {...register('maxScore', { required: true, min: 1, valueAsNumber: true })}
               type="number" step="0.01" className="input input-bordered input-sm" />
+            {errors.maxScore && <span className="text-error text-xs mt-1">Maximum must be greater than 0.</span>}
           </div>
         </div>
 

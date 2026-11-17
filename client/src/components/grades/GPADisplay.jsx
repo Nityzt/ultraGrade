@@ -29,7 +29,6 @@ export default function GPADisplay({ courses }) {
   const maxGPA = Math.max(...scale.grades.map(g => g.points));
 
   const gpa = calcSemesterGPA(courses, scaleKey);
-  const letterGrade = gpa !== null ? getGradeInfo((gpa / maxGPA) * 100, scaleKey) : null;
 
   const semestersWithGrades = semesters.filter(s => {
     const sc = allCourses.filter(c => c.semesterId === s.id);
@@ -49,7 +48,6 @@ export default function GPADisplay({ courses }) {
           </div>
           <div className="mb-1">
             <span className="badge badge-lg">{scale.name}</span>
-            {letterGrade && <p className="text-base-content/60 text-sm mt-1">{letterGrade.letter}</p>}
           </div>
         </div>
       ) : (

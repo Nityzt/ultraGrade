@@ -108,6 +108,13 @@ export default function CategoryRow({ category, courseId, onEdit, onDelete }) {
       <div
         className="flex items-center justify-between px-3 py-2.5 bg-base-300/20 cursor-pointer hover:bg-base-300/40 transition-colors"
         onClick={() => setExpanded(!expanded)}
+        role="button"
+        tabIndex={0}
+        aria-expanded={expanded}
+        aria-label={`${category.name || 'Category'} ${expanded ? 'collapse' : 'expand'}`}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded(v => !v); }
+        }}
       >
         <div className="flex items-center gap-2 min-w-0">
           <button

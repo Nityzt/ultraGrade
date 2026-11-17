@@ -10,7 +10,9 @@ const MODEL = 'gemini-2.5-flash'; // 2.0-flash reports free-tier limit: 0 — se
 const ITEM_SCHEMA = {
   type: SchemaType.OBJECT,
   properties: {
+    action: { type: SchemaType.STRING, enum: ['create', 'complete_task', 'reschedule_task'], format: 'enum' },
     kind: { type: SchemaType.STRING, enum: ['task', 'grade', 'class'], format: 'enum' },
+    taskId: { type: SchemaType.STRING },
     courseId: { type: SchemaType.STRING },
     // task
     title: { type: SchemaType.STRING },
@@ -44,9 +46,12 @@ const RESPONSE_SCHEMA = {
   required: ['items'],
 };
 
-function buildPrompt({ courses, currentDate, semesterStart, semesterEnd }) {
+function buildPrompt({ courses, tasks, currentDate, semesterStart, semesterEnd }) {
   const courseLines = (courses || [])
     .map((c) => `  - id="${c.id}" code="${c.code || ''}" name="${c.name || ''}" categories="${(c.categories || []).join(', ')}"`)
+    .join('\n') || '  (none)';
+  const taskLines = (tasks || [])
+    .map(t => `  - id="${t.id}" title="${t.title}" due="${t.dueDate || ''}" course="${t.courseCode || ''}"`)
     .join('\n') || '  (none)';
 
   const semLine = semesterStart || semesterEnd
@@ -59,6 +64,8 @@ Return 1 to 5 items. Split compound notes ("essay Friday and quiz Monday") into 
 
 Today's date is ${currentDate} (use it to resolve relative dates like "tomorrow", "next friday", "in 2 weeks").${semLine}
 
+Set each item's action to "create" for a new item, "complete_task" to mark an existing open task done, or "reschedule_task" to move an existing open task (with the new dueDate). For edit actions, set taskId to the exact ID from the open task list and never invent an ID.
+
 Classify each item into exactly one "kind":
 - "task": an assignment, exam, quiz, project, or personal to-do with a deadline. Fill: title, taskType, dueDate (YYYY-MM-DD), dueTime (HH:MM, 24h; default "23:59" if only a day is given), priority.
 - "grade": a mark the student received. Fill: category (the assessment category name, e.g. "Midterm", "Assignment 1"), label, score (number), maxScore (number). "got 85%" → score 85, maxScore 100. "18/20" → score 18, maxScore 20. category MUST be one of the listed category names for the matched course when any exist; if none fits, propose a sensible category name and set newCategoryWeight to its likely weight (a number 0-100).
@@ -67,6 +74,9 @@ Classify each item into exactly one "kind":
 COURSE MATCHING — the student's courses are listed below. If the note references one (by code like "cs350"/"eecs 3311" or by name), set courseId to that course's EXACT id from the list. If no course clearly matches, set courseId to "".
 Courses:
 ${courseLines}
+
+Open tasks:
+${taskLines}
 
 Rules:
 - Return the best interpretation of each part of the note. Prefer "task" when a deadline is implied.
@@ -110,5 +120,6 @@ export async function parseQuickAdd(text, context = {}) {
   }
 
   const knownIds = (context.courses || []).map((c) => c.id);
-  return validateQuickAdd(parsed, knownIds);
+  const knownTaskIds = (context.tasks || []).map((t) => t.id);
+  return validateQuickAdd(parsed, knownIds, knownTaskIds);
 }

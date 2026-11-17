@@ -1,16 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, GraduationCap, Calendar, ClipboardList, Globe, BookOpen, Settings, ChevronDown, Check } from 'lucide-react';
+import { LayoutDashboard, GraduationCap, Calendar, ClipboardList, Globe, ChevronDown, Check, MessageCircle, Link2, RotateCcw, UserRound } from 'lucide-react';
 import { useApp } from '../../context/AppContext.jsx';
 import { useThemeTransition } from '../../hooks/useThemeTransition.js';
-import { calcSemesterGPA } from '../../utils/gradeCalculations.js';
 import UserMenu from './UserMenu.jsx';
-import AnimatedNumber from '../ui/AnimatedNumber.jsx';
 
 function NavItem({ to, icon: Icon, label }) {
   return (
     <NavLink
       to={to}
+      end={to === '/' || to === '/demo'}
       className={({ isActive }) =>
         `group pressable flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium transition-colors duration-200 ${
           isActive
@@ -99,61 +98,65 @@ function SemesterSelector() {
   );
 }
 
-export default function Sidebar() {
-  const { settings, activeCourses } = useApp();
+export default function Sidebar({ demo = false }) {
+  const { resetDemo } = useApp();
   const { meta, nextMeta, toggleProps } = useThemeTransition();
   const ThemeIcon = meta.Icon;
 
-  const gpa = calcSemesterGPA(activeCourses, settings.gpaScale);
-  const isInt = settings.studentType === 'international';
+
+  if (demo) return <aside className="hidden md:flex flex-col w-60 h-full shrink-0 demo-rail p-3 gap-1 overflow-y-auto no-print">
+    <div className="flex items-center gap-3 px-3 py-3 mb-5"><div className="w-9 h-9 rounded-2xl bg-primary flex items-center justify-center text-primary-content"><GraduationCap size={18} /></div><div><span className="font-display font-bold tracking-tight text-lg block"><span className="text-primary">ultra</span>Grade</span><span className="semantic-label">Student life OS</span></div></div>
+    <div className="mx-2 mb-4"><span className="status-pill status-pill-primary">Demo mode</span></div>
+    <nav className="flex flex-col gap-1 flex-1">
+      <NavItem to="/demo" icon={LayoutDashboard} label="Home" />
+      <NavItem to="/demo/ask" icon={MessageCircle} label="Ask ultraGrade" />
+      <NavItem to="/demo/life" icon={Globe} label="Life Hub" />
+      <NavItem to="/demo/connections" icon={Link2} label="Connections" />
+      <NavItem to="/demo/profile" icon={UserRound} label="Profile" />
+    </nav>
+    <div className="pt-3 border-t border-base-content/8"><p className="semantic-label px-3 mb-2">Academic details</p><NavItem to="/demo/grades" icon={GraduationCap} label="Grades" /><NavItem to="/demo/planner" icon={ClipboardList} label="Planner" /><NavItem to="/demo/timetable" icon={Calendar} label="Timetable" /><button type="button" onClick={resetDemo} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm text-base-content/55 hover:bg-base-content/5"><RotateCcw size={17} /> Reset demo</button></div>
+  </aside>;
 
   return (
-    <aside className="hidden md:flex flex-col w-64 h-full shrink-0 bg-base-200/70 backdrop-blur-xl border-r border-base-300/60 p-4 gap-1 overflow-y-auto no-print">
+    <aside className="hidden md:flex flex-col w-60 h-full shrink-0 app-rail p-3 gap-1 overflow-y-auto no-print">
       {/* Brand */}
-      <div className="flex items-center gap-3 px-2 mb-6 mt-1">
-        <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center shadow-bloom">
+      <div className="flex items-center gap-3 px-3 py-3 mb-4">
+        <div className="w-9 h-9 rounded-2xl bg-primary flex items-center justify-center">
           <GraduationCap size={19} className="text-primary-content" />
         </div>
         <div className="leading-tight">
-          <span className="font-display font-bold text-xl tracking-tight block">
+          <span className="font-display font-bold text-lg tracking-tight block">
             <span className="text-primary">ultra</span>
             <span className="text-base-content">Grade</span>
           </span>
-          <span className="text-[11px] text-base-content/40 tracking-wide">Academic Suite</span>
+          <span className="semantic-label">Student life OS</span>
         </div>
       </div>
 
       {/* Semester selector */}
       <SemesterSelector />
 
-      {/* GPA Badge */}
-      {gpa !== null && (
-        <div className="mx-1 mb-4 px-3.5 py-2.5 rounded-2xl bg-primary/8 border border-primary/20 flex items-center justify-between">
-          <span className="text-xs text-base-content/50">Semester GPA</span>
-          <span className="font-display font-bold text-primary text-base tabular glow-sage">
-            <AnimatedNumber value={gpa} format={{ minimumFractionDigits: 2, maximumFractionDigits: 2 }} />
-          </span>
-        </div>
-      )}
-
-      {/* Nav links */}
+      {/* Command-center navigation */}
       <nav className="flex flex-col gap-1 flex-1">
-        <NavItem to="/" icon={LayoutDashboard} label="Dashboard" />
-        <NavItem to="/grades" icon={GraduationCap} label="Grades" />
-        <NavItem to="/timetable" icon={Calendar} label="Timetable" />
-        <NavItem to="/planner" icon={ClipboardList} label="Planner" />
-        {isInt
-          ? <NavItem to="/immigration" icon={Globe} label="Immigration" />
-          : <NavItem to="/resources" icon={BookOpen} label="Student Resources" />
-        }
-        <NavItem to="/settings" icon={Settings} label="Settings" />
+        <NavItem to="/" icon={LayoutDashboard} label="Home" />
+        <NavItem to="/ask" icon={MessageCircle} label="Ask ultraGrade" />
+        <NavItem to="/life" icon={Globe} label="Life Hub" />
+        <NavItem to="/connections" icon={Link2} label="Connections" />
+        <NavItem to="/profile" icon={UserRound} label="Profile" />
       </nav>
+
+      <div className="pt-3 mt-2 border-t border-base-content/8">
+        <p className="semantic-label px-3 mb-2">Academic details</p>
+        <NavItem to="/grades" icon={GraduationCap} label="Grades" />
+        <NavItem to="/planner" icon={ClipboardList} label="Planner" />
+        <NavItem to="/timetable" icon={Calendar} label="Timetable" />
+      </div>
 
       {/* Theme toggle + user */}
       <div className="mt-auto pt-3 border-t border-base-300/60 flex flex-col gap-1">
         <button
           {...toggleProps}
-          className="flex items-center justify-between gap-2 px-2.5 py-2 rounded-2xl select-none text-left hover:bg-base-content/5 transition-colors group"
+          className="flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl select-none text-left hover:bg-base-content/5 transition-colors group"
           aria-label={`Theme: ${meta.label}. Click to switch to ${nextMeta.label}`}
           title={`${meta.label} — click for ${nextMeta.label}`}
         >

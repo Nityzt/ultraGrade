@@ -82,6 +82,8 @@ const toSettings = (r) => ({
   studentName: r.student_name || '',
   icsToken: r.ics_token || null,
   calendarConnected: r.calendar_connected || false,
+  aiConsentVersion: r.ai_consent_version || null,
+  aiConsentAt: r.ai_consent_at || null,
 });
 
 export async function loadAll(userId) {

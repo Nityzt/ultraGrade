@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import crypto from 'node:crypto';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -14,6 +15,9 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const isProd = process.env.NODE_ENV === 'production';
 const clientUrl = (process.env.CLIENT_URL || 'http://localhost:5173').replace(/\/+$/, '');
+const requiredConfig = ['SUPABASE_URL', 'GEMINI_API_KEY'];
+const missingConfig = requiredConfig.filter((key) => !process.env[key]);
+if (missingConfig.length) console.warn(`[config] Missing required environment variables: ${missingConfig.join(', ')}`);
 
 // Behind Render/Vercel proxies — needed for correct req.ip (rate limiting).
 app.set('trust proxy', 1);
@@ -21,14 +25,28 @@ app.set('trust proxy', 1);
 app.use(helmet());
 app.use(cors({ origin: clientUrl }));
 app.use(express.json({ limit: '100kb' }));
+app.use((req, res, next) => {
+  const requestId = req.headers['x-request-id'] || crypto.randomUUID();
+  req.requestId = String(requestId).slice(0, 100);
+  res.setHeader('X-Request-Id', req.requestId);
+  next();
+});
 
-app.get('/api/health', (_req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
+app.get('/api/health', (_req, res) => {
+  const ready = missingConfig.length === 0;
+  res.status(ready ? 200 : 503).json({
+    status: ready ? 'ok' : 'degraded',
+    ready,
+    time: new Date().toISOString(),
+    ...(ready ? {} : { missingConfig }),
+  });
+});
 
 // Gemini calls are expensive and quota-limited — throttle per authenticated user.
 app.use(
   '/api/parse-outline',
-  rateLimit({ name: 'parse-outline', limit: 10, windowMs: 60 * 60 * 1000 }),
   requireAuth,
+  rateLimit({ name: 'parse-outline', limit: 10, windowMs: 60 * 60 * 1000, failClosed: true }),
   parseOutlineRouter
 );
 
@@ -37,7 +55,7 @@ app.use(
 app.use(
   '/api/quick-add',
   requireAuth,
-  rateLimit({ name: 'quick-add', limit: 30, windowMs: 60 * 60 * 1000 }),
+  rateLimit({ name: 'quick-add', limit: 30, windowMs: 60 * 60 * 1000, failClosed: true }),
   quickAddRouter
 );
 

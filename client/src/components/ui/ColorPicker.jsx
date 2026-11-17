@@ -12,6 +12,8 @@ export default function ColorPicker({ value, onChange }) {
             value === color ? 'border-base-content scale-110' : 'border-transparent hover:scale-105'
           }`}
           style={{ backgroundColor: color }}
+          aria-label={`Choose course color ${color}`}
+          aria-pressed={value === color}
         />
       ))}
     </div>

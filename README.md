@@ -53,7 +53,7 @@ Track grades & GPA, manage your timetable, plan assignments, and access live Can
 git clone <repo-url>
 cd ultraGrade
 
-# Install all dependencies (root + server + client)
+# Install all dependencies (root + server + client, exactly from lockfiles)
 npm run install:all
 ```
 
@@ -256,7 +256,13 @@ The page **never blocks on a slow government host**. Curated content renders imm
 ### Android
 1. Open in **Chrome** → tap **⋮** → **Add to Home Screen / Install app** → **Install**
 
-The app works offline once installed — grades, timetable, and tasks are always accessible.
+The app works offline once installed — grades, timetable, and tasks remain readable, and changes made during a connection outage remain in the current session and retry when connectivity returns. A permanent sync failure restores the affected item and offers a retry action.
+
+## Release checks
+
+Before a deployment, run `npm run audit`, `npm test`, and `npm run build`. The Render `/api/health` endpoint returns a non-success status when required server configuration is missing. Apply Supabase migrations in numeric order, including `003_production_integrity.sql`.
+
+Outline uploads are sent to Gemini only after the user explicitly consents in the import flow. Consent can be revoked in Settings; uploaded files are processed in memory and are not retained by ultraGrade.
 
 ---
 
