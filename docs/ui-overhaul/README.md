@@ -1,6 +1,6 @@
-# UI overhaul: flat, minimal, fast (branch `ui/flat-overhaul`)
+# UI overhaul: flat, minimal, fast
 
-This folder is the shared context for the overhaul issues. If you're picking up an issue, read this page first. It should take about 5 minutes.
+This folder is the shared context for the overhaul issues (tracking: #12). If you're picking up an issue, read this page first. It should take about 5 minutes.
 
 ## Goal
 ultraGrade should feel **minimal and flat**:
@@ -9,16 +9,15 @@ ultraGrade should feel **minimal and flat**:
 - **light and responsive** on iPhone (including as an installed PWA), iPad, laptop and desktop
 
 ## Workflow for issue PRs
-1. Branch from `ui/flat-overhaul`, not `main`. Name the branch `ux/<issue-number>-<slug>`.
-2. Open the PR **into `ui/flat-overhaul`**, with `Closes #<issue>` in the body. Keep it to one issue per PR.
+1. Branch from `main`. Name the branch `ux/<issue-number>-<slug>`.
+2. Open the PR **into `main`**, with `Closes #<issue>` in the body. Keep it to one issue per PR.
 3. Stay inside the files your issue **owns** (each issue lists them). If you have to touch a file another issue owns, keep the edit small and mention it in the PR description.
 4. Before you ask for review, run the [verification checklist](#verification-checklist-every-pr).
-5. When an issue lists **dependencies**, merge those first.
-6. GitHub only auto-closes issues for PRs merged into the default branch (`main`). After a PR merges into `ui/flat-overhaul`, **close its issue by hand** with a link to the PR. The tracking issue (#12) lists the order and who owns which files.
+5. When an issue lists **dependencies**, merge those first. #12 has the merge order.
 
-`ui/flat-overhaul` merges into `main` only when the final verification issue is done.
+`main` deploys to production (Vercel and Render), so every PR must leave the app working.
 
-## What's already done on this branch (foundation)
+## What's already done (foundation, merged to `main`)
 - **Colour bug fixed in CSS.**
   - DaisyUI 4 colour tokens are **OKLCH triples**, so `hsl(var(--p))` is invalid CSS and was silently dropped. That's why pills, rails and focus rings had no colour.
   - `client/src/index.css` was rewritten as one flat layer using `oklch(var(--x) / a)`.
