@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "node --watch index.js",
     "start": "node index.js",
+    "test": "node --test",
     "revalidate:immigration": "node jobs/revalidateImmigration.js"
   },
   "dependencies": {

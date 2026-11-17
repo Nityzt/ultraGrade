@@ -9,7 +9,7 @@ const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default function AddClassModal({ isOpen, onClose, editingEntry, prefillDay, prefillTime }) {
   const { addTimetableEntry, updateTimetableEntry, activeCourses } = useApp();
-  const { register, handleSubmit, reset, watch, setValue } = useForm();
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm();
   const color = watch('color');
 
   useEffect(() => {
@@ -61,6 +61,7 @@ export default function AddClassModal({ isOpen, onClose, editingEntry, prefillDa
           <div className="form-control col-span-2">
             <label className="label"><span className="label-text">Label</span></label>
             <input {...register('label', { required: 'Required' })} className="input input-bordered input-sm" placeholder="EECS 3311 Lecture" />
+            {errors.label && <span className="text-error text-xs mt-1">Enter a class label.</span>}
           </div>
 
           <div className="form-control">
@@ -84,10 +85,12 @@ export default function AddClassModal({ isOpen, onClose, editingEntry, prefillDa
           <div className="form-control">
             <label className="label"><span className="label-text">Start Time</span></label>
             <input {...register('startTime', { required: true })} type="time" className="input input-bordered input-sm" />
+            {errors.startTime && <span className="text-error text-xs mt-1">Choose a start time.</span>}
           </div>
           <div className="form-control">
             <label className="label"><span className="label-text">End Time</span></label>
             <input {...register('endTime', { required: true })} type="time" className="input input-bordered input-sm" />
+            {errors.endTime && <span className="text-error text-xs mt-1">Choose an end time.</span>}
           </div>
         </div>
 

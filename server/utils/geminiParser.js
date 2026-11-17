@@ -85,6 +85,15 @@ Extract as much as the document supports. Prefer more complete schedule and dead
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const AI_TIMEOUT_MS = Number(process.env.AI_TIMEOUT_MS || 45_000);
+
+function withTimeout(promise, ms = AI_TIMEOUT_MS) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error('AI request timed out')), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
 
 // Gemini's flash tier throws transient 503 "high demand" / UNAVAILABLE spikes.
 // Retry those a couple of times with backoff; never retry quota (429) — it
@@ -98,7 +107,7 @@ export async function generateWithRetry(model, request, attempts = 3) {
   let lastErr;
   for (let i = 0; i < attempts; i++) {
     try {
-      return await model.generateContent(request);
+      return await withTimeout(model.generateContent(request));
     } catch (err) {
       lastErr = err;
       if (!isTransient(err) || i === attempts - 1) throw err;

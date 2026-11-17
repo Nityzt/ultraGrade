@@ -1,7 +1,14 @@
 // Date helper utilities
 
 export function toDateStr(date) {
-  return date.toISOString().split('T')[0]; // YYYY-MM-DD
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+  // Date-only application values are calendar dates, not UTC instants. Using
+  // toISOString() turns late-evening Toronto (and other negative offsets) into
+  // tomorrow. Read the local calendar fields instead.
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 /**
@@ -40,14 +47,17 @@ export function today() {
 }
 
 export function addDays(dateStr, days) {
-  const d = new Date(dateStr + 'T00:00:00');
+  const d = new Date(`${dateStr}T00:00:00`);
+  if (Number.isNaN(d.getTime()) || !Number.isFinite(Number(days))) return '';
   d.setDate(d.getDate() + days);
   return toDateStr(d);
 }
 
 export function daysBetween(dateStrA, dateStrB) {
-  const a = new Date(dateStrA + 'T00:00:00');
-  const b = new Date(dateStrB + 'T00:00:00');
+  // UTC midnight gives exact calendar-day arithmetic across DST boundaries.
+  const a = Date.parse(`${dateStrA}T00:00:00Z`);
+  const b = Date.parse(`${dateStrB}T00:00:00Z`);
+  if (Number.isNaN(a) || Number.isNaN(b)) return NaN;
   return Math.round((b - a) / (1000 * 60 * 60 * 24));
 }
 

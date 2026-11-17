@@ -259,6 +259,8 @@ export function upsertProfile(settings, userId) {
     school: settings.school,
     permit_expiry_date: settings.permitExpiryDate || null,
     student_name: settings.studentName,
+    ai_consent_version: settings.aiConsentVersion || null,
+    ai_consent_at: settings.aiConsentAt || null,
     updated_at: new Date().toISOString(),
   }, { onConflict: 'id' });
 }

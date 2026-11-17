@@ -84,11 +84,15 @@ export default defineConfig({
         // Stable vendor libs get their own chunks: they download in parallel,
         // and an app-code change no longer invalidates the react/supabase/
         // framer cache entries (long-lived PWA precache hits).
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-supabase': ['@supabase/supabase-js'],
-          'vendor-motion': ['framer-motion'],
-          'vendor-ui': ['sonner', 'cmdk', '@number-flow/react', '@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
+        // Vite 8/Rolldown accepts a resolver function here. Keep the same
+        // stable vendor buckets as the Rollup object form used previously.
+        manualChunks(id) {
+          if (!id.includes('/node_modules/')) return undefined;
+          if (/\/node_modules\/(react|react-dom|react-router-dom)(\/|$)/.test(id)) return 'vendor-react';
+          if (/\/node_modules\/@supabase\/supabase-js(\/|$)/.test(id)) return 'vendor-supabase';
+          if (/\/node_modules\/framer-motion(\/|$)/.test(id)) return 'vendor-motion';
+          if (/\/node_modules\/(sonner|cmdk|@number-flow\/react|@dnd-kit\/core|@dnd-kit\/sortable|@dnd-kit\/utilities)(\/|$)/.test(id)) return 'vendor-ui';
+          return undefined;
         }
       }
     }

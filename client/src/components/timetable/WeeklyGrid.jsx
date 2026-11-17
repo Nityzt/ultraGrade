@@ -99,9 +99,11 @@ export default function WeeklyGrid({ entries, onClickEntry, onClickSlot }) {
           {/* Clickable empty slots */}
           {DAY_NUMS.map((day, dIdx) =>
             Array.from({ length: TOTAL_SLOTS }, (_, slot) => (
-              <div key={`slot-${day}-${slot}`}
+              <button key={`slot-${day}-${slot}`}
+                type="button"
                 className="cursor-pointer hover:bg-primary/5 transition-colors"
                 style={{ gridRow: slot + 1, gridColumn: dIdx + 2 }}
+                aria-label={`Add class on ${day} at ${String(START_HOUR + Math.floor(slot / 2)).padStart(2,'0')}:${slot % 2 ? '30' : '00'}`}
                 onClick={() => {
                   const mins = START_HOUR * 60 + slot * SLOT_MINS;
                   const h = Math.floor(mins / 60), m = mins % 60;

@@ -54,8 +54,8 @@ export default function DayView({ entries, onEdit }) {
                 </div>
               </div>
               <div className="flex gap-1 shrink-0">
-                <button onClick={() => onEdit(entry)} className="btn btn-ghost btn-xs btn-circle hit-44"><Pencil size={12} /></button>
-                <button onClick={() => deleteTimetableEntry(entry.id)} className="btn btn-ghost btn-xs btn-circle text-error hit-44"><Trash2 size={12} /></button>
+                <button aria-label={`Edit ${entry.label || 'class'}`} onClick={() => onEdit(entry)} className="btn btn-ghost btn-xs btn-circle hit-44"><Pencil size={12} /></button>
+                <button aria-label={`Delete ${entry.label || 'class'}`} onClick={() => deleteTimetableEntry(entry.id)} className="btn btn-ghost btn-xs btn-circle text-error hit-44"><Trash2 size={12} /></button>
               </div>
             </div>
             <span className="badge badge-xs badge-ghost mt-2">{entry.type}</span>

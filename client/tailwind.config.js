@@ -72,42 +72,41 @@ export default {
   daisyui: {
     themes: [
       {
-        // Kinetic Moss — the flagship "Classic" brand identity. Electric lime on
-        // deep moss; energetic, alive. This is the default for new users.
+        // Ink + evergreen — quiet dark counterpart to the pearl light theme.
         'ultragrade-classic': {
-          primary: '#c3f400',
-          'primary-focus': '#abd600',
-          'primary-content': '#161e00',
-          secondary: '#4ae176',
-          'secondary-content': '#002109',
-          accent: '#d9f99d',
-          'accent-content': '#161e00',
-          neutral: '#18221c',
-          'base-100': '#0b1511',
-          'base-200': '#141e19',
-          'base-300': '#222c27',
-          'base-content': '#dae5dd',
-          info: '#7fb4d6',
-          success: '#4ae176',
-          warning: '#f7bb7e',
-          error: '#ffb4ab'
+          primary: '#8eb79a',
+          'primary-focus': '#739d80',
+          'primary-content': '#102218',
+          secondary: '#b5cdb7',
+          'secondary-content': '#102218',
+          accent: '#8eb79a',
+          'accent-content': '#102218',
+          neutral: '#16221b',
+          'base-100': '#101612',
+          'base-200': '#151d18',
+          'base-300': '#26322a',
+          'base-content': '#e5ebe6',
+          info: '#86aac7',
+          success: '#83b991',
+          warning: '#d6ab71',
+          error: '#d98c88'
         }
       },
       {
-        // Paper + emerald — the light counterpart, brand hue stays green
+        // Pearl + evergreen — the light counterpart.
         'ultragrade-light': {
-          primary: '#0f9d58',
-          'primary-focus': '#0c7d46',
+          primary: '#28774f',
+          'primary-focus': '#1e6240',
           'primary-content': '#ffffff',
-          secondary: '#e0913f',
+          secondary: '#65806d',
           'secondary-content': '#ffffff',
-          accent: '#0f9d58',
+          accent: '#28774f',
           'accent-content': '#ffffff',
           neutral: '#ffffff',
-          'base-100': '#eef2ef',
+          'base-100': '#f5f6f3',
           'base-200': '#ffffff',
-          'base-300': '#dbe4de',
-          'base-content': '#16241c',
+          'base-300': '#dfe4dd',
+          'base-content': '#19221c',
           info: '#2f80c2',
           success: '#15a34a',
           warning: '#d0872f',

@@ -8,14 +8,27 @@ import { supabase } from '../../lib/supabase.js';
 import { API_BASE_URL } from '../../lib/apiBase.js';
 
 export default function OutlineImportModal({ isOpen, onClose }) {
-  const { importFromOutline, activeSemester } = useApp();
+  const { importFromOutline, activeSemester, settings, updateSettings } = useApp();
   const [status, setStatus] = useState('idle'); // idle | loading | preview | error
   const [parsed, setParsed] = useState(null);
   const [error, setError] = useState('');
   const fileRef = useRef();
+  const AI_CONSENT_VERSION = '2026-07-01';
+  const [consent, setConsent] = useState(settings.aiConsentVersion === AI_CONSENT_VERSION);
+  useEffect(() => {
+    setConsent(settings.aiConsentVersion === AI_CONSENT_VERSION);
+  }, [settings.aiConsentVersion]);
 
   const handleFile = async (file) => {
     if (!file) return;
+    if (!consent) {
+      setError('Please confirm AI processing consent before uploading an outline.');
+      setStatus('error');
+      return;
+    }
+    if (settings.aiConsentVersion !== AI_CONSENT_VERSION) {
+      updateSettings({ aiConsentVersion: AI_CONSENT_VERSION, aiConsentAt: new Date().toISOString() });
+    }
     setStatus('loading');
     setError('');
     try {
@@ -79,6 +92,10 @@ export default function OutlineImportModal({ isOpen, onClose }) {
           <p className="text-xs text-base-content/40 text-center">
             AI will extract course name, schedule, assessment weights, and deadlines. You can review before importing.
           </p>
+          <label className="flex items-start gap-2 text-xs text-base-content/60 w-full cursor-pointer">
+            <input type="checkbox" className="checkbox checkbox-sm checkbox-primary mt-0.5" checked={consent} onChange={e => setConsent(e.target.checked)} />
+            <span>I agree to send this outline to Gemini for processing. ultraGrade does not retain the uploaded file. I can revoke this in Settings.</span>
+          </label>
         </div>
       )}
 
@@ -123,6 +140,15 @@ export default function OutlineImportModal({ isOpen, onClose }) {
             <span className="pill px-2.5 py-1 text-base-content/70">{parsed.schedule?.length || 0} timetable slots</span>
             <span className="pill px-2.5 py-1 text-base-content/70">{parsed.deadlines?.length || 0} calendar deadlines</span>
           </div>
+          {parsed.diagnostics && Object.keys(parsed.diagnostics).length > 0 && (
+            <div className="alert alert-warning rounded-2xl text-xs">
+              <span>
+                Review the AI extraction: {Object.entries(parsed.diagnostics).map(([key, value]) =>
+                  key.endsWith('Skipped') ? `${value} ${key.replace('Skipped', '').toLowerCase()} skipped` : `assessment weights total ${value}%`
+                ).join(' · ')}.
+              </span>
+            </div>
+          )}
           {!parsed.deadlines?.length && (
             <p className="text-xs text-warning/80">
               No dated deadlines were found in this outline — nothing will be added to your calendar. You can add tasks manually in the Planner.

@@ -47,7 +47,7 @@ export default function Planner() {
         }
       />
 
-      <div className="p-4 md:p-6 flex-1 overflow-y-auto">
+      <div className="p-4 md:p-6 flex-1">
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Left: filters + tasks */}
           <div className="flex-1 min-w-0 animate-fade-up">

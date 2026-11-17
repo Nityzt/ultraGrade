@@ -14,7 +14,10 @@ export default function SyncErrorBridge() {
   useEffect(() => {
     if (syncError && syncError !== last.current) {
       last.current = syncError;
-      toast.error(syncError);
+      toast.error(syncError.message || syncError, syncError.retry ? {
+        action: { label: 'Retry', onClick: syncError.retry },
+        duration: 8000,
+      } : undefined);
     } else if (!syncError) {
       last.current = null;
     }

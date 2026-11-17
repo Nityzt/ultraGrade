@@ -51,7 +51,7 @@ export default function Timetable() {
       <div className="md:hidden flex flex-col gap-4 pt-4">
         <DaySelector selectedDay={selectedDay} onChange={setSelectedDay} />
         {activeTimetable.length === 0 ? (
-          <EmptyState icon={Calendar} title="No classes yet" description="Add your first class to get started." />
+          <EmptyState icon={Calendar} title="No classes yet" description="Add your first class to get started." action={<button onClick={() => openAdd()} className="btn btn-primary btn-sm"><Plus size={14} /> Add class</button>} />
         ) : (
           <DayView entries={dayEntries} onEdit={openEdit} />
         )}
@@ -60,7 +60,7 @@ export default function Timetable() {
       {/* Desktop: weekly grid */}
       <div className="hidden md:flex flex-col flex-1 overflow-hidden p-4">
         {activeTimetable.length === 0 ? (
-          <EmptyState icon={Calendar} title="No classes yet" description="Click any time slot to add a class, or use the + button." />
+          <EmptyState icon={Calendar} title="No classes yet" description="Click any time slot to add a class, or use the + button." action={<button onClick={() => openAdd()} className="btn btn-primary btn-sm"><Plus size={14} /> Add class</button>} />
         ) : (
           <WeeklyGrid
             entries={activeTimetable}

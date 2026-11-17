@@ -10,11 +10,20 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024, files: 1 },
   fileFilter: (_req, file, cb) => {
     const allowed = file.mimetype === 'application/pdf' || file.mimetype.startsWith('image/');
-    cb(null, allowed);
+    cb(allowed ? null : new multer.MulterError('LIMIT_UNEXPECTED_FILE', 'outline'));
   },
 });
 
-router.post('/', upload.single('outline'), async (req, res) => {
+router.post('/', (req, res, next) => upload.single('outline')(req, res, (err) => {
+  if (err instanceof multer.MulterError) {
+    const message = err.code === 'LIMIT_FILE_SIZE'
+      ? 'That file is too large. Maximum size is 10 MB.'
+      : 'Unsupported file type. Use a PDF, PNG, JPG, or JPEG.';
+    return res.status(400).json({ success: false, error: message });
+  }
+  if (err) return next(err);
+  next();
+}), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ success: false, error: 'No file uploaded' });
 
@@ -52,6 +61,9 @@ router.post('/', upload.single('outline'), async (req, res) => {
     }
     if (msg.includes('503') || msg.toLowerCase().includes('unavailable') || msg.toLowerCase().includes('overloaded') || msg.toLowerCase().includes('high demand')) {
       return res.status(503).json({ success: false, error: 'The AI service is briefly overloaded. Please try again in a moment.' });
+    }
+    if (msg.toLowerCase().includes('timed out')) {
+      return res.status(504).json({ success: false, error: 'The AI service took too long to respond. Please try again.' });
     }
     res.status(500).json({ success: false, error: 'Failed to parse outline. Please try again.' });
   }

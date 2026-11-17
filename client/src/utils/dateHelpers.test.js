@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, afterEach, vi } from 'vitest'
 import {
   addDays,
   daysBetween,
@@ -10,7 +10,26 @@ import {
   today,
   dayName,
   dayFullName,
+  toDateStr,
 } from './dateHelpers.js'
+
+afterEach(() => vi.useRealTimers())
+
+describe('local calendar dates', () => {
+  it('formats a Date using local fields rather than UTC', () => {
+    // In a negative offset this instant is still the previous local day.
+    const instant = new Date('2025-06-16T01:30:00Z')
+    const expected = new Intl.DateTimeFormat('en-CA', {
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(instant).replace(/\//g, '-')
+    expect(toDateStr(instant)).toBe(expected)
+  })
+
+  it('keeps calendar-day differences stable across DST', () => {
+    expect(daysBetween('2025-03-08', '2025-03-10')).toBe(2)
+  })
+})
 
 // ---------------------------------------------------------------------------
 // addDays

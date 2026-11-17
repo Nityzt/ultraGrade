@@ -8,8 +8,8 @@ const LIGHT = 'ultragrade-light';
 // Two coexisting themes. The toggle flips between them; Settings jumps directly.
 export const THEMES = [CLASSIC, LIGHT];
 export const THEME_META = {
-  [CLASSIC]: { label: 'Classic', hint: 'Electric lime', Icon: Sparkles },
-  [LIGHT]: { label: 'Light', hint: 'Emerald day', Icon: Sun },
+  [CLASSIC]: { label: 'Ink', hint: 'Muted evergreen', Icon: Sparkles },
+  [LIGHT]: { label: 'Light', hint: 'Pearl and evergreen', Icon: Sun },
 };
 
 const normalize = (t) => (THEMES.includes(t) ? t : CLASSIC);

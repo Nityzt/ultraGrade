@@ -1,13 +1,13 @@
 import { NavLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, GraduationCap, Calendar, ClipboardList, Globe, BookOpen, Settings as SettingsIcon } from 'lucide-react';
-import { useApp } from '../../context/AppContext.jsx';
+import { LayoutDashboard, Globe, MessageCircle, Link2, UserRound } from 'lucide-react';
 import { SPRING } from '../../lib/motion.js';
 
 function NavItem({ to, icon: Icon, label }) {
   return (
     <NavLink
       to={to}
+      end={to === '/' || to === '/demo'}
       className={({ isActive }) =>
         `group pressable relative flex flex-col items-center justify-center flex-1 h-full transition-colors duration-200 ${
           isActive ? 'text-primary' : 'text-base-content/45 hover:text-base-content/80'
@@ -37,21 +37,23 @@ function NavItem({ to, icon: Icon, label }) {
   );
 }
 
-export default function BottomNav() {
-  const { settings } = useApp();
-  const isInt = settings.studentType === 'international';
+export default function BottomNav({ demo = false }) {
+
+  if (demo) return <nav aria-label="Demo navigation" className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex items-stretch h-20 pb-safe pl-safe pr-safe px-2 no-print demo-bottom-nav">
+    <NavItem to="/demo" icon={LayoutDashboard} label="Home" />
+    <NavItem to="/demo/ask" icon={MessageCircle} label="Ask" />
+    <NavItem to="/demo/life" icon={Globe} label="Life" />
+    <NavItem to="/demo/connections" icon={Link2} label="Connect" />
+    <NavItem to="/demo/profile" icon={UserRound} label="Profile" />
+  </nav>;
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex items-stretch h-20 pb-safe pl-safe pr-safe px-2 no-print bg-base-200/85 backdrop-blur-2xl border-t border-base-content/8 rounded-t-[24px] shadow-[0_-8px_32px_rgba(0,0,0,0.28)]">
-      <NavItem to="/" icon={LayoutDashboard} label="Dashboard" />
-      <NavItem to="/grades" icon={GraduationCap} label="Grades" />
-      <NavItem to="/timetable" icon={Calendar} label="Timetable" />
-      <NavItem to="/planner" icon={ClipboardList} label="Planner" />
-      {isInt
-        ? <NavItem to="/immigration" icon={Globe} label="Immigration" />
-        : <NavItem to="/resources" icon={BookOpen} label="Resources" />
-      }
-      <NavItem to="/settings" icon={SettingsIcon} label="Settings" />
+    <nav aria-label="Primary navigation" className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex items-stretch h-20 pb-safe pl-safe pr-safe px-2 no-print app-bottom-nav">
+      <NavItem to="/" icon={LayoutDashboard} label="Home" />
+      <NavItem to="/ask" icon={MessageCircle} label="Ask" />
+      <NavItem to="/life" icon={Globe} label="Life" />
+      <NavItem to="/connections" icon={Link2} label="Connect" />
+      <NavItem to="/profile" icon={UserRound} label="Profile" />
     </nav>
   );
 }

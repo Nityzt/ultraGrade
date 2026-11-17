@@ -9,9 +9,21 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // A self-contained demo must never wait for, read from, or write to a
+    // Supabase project. Keep this at the provider boundary so any demo child
+    // can freely use the normal application component tree.
+    if (window.location.pathname.startsWith('/demo')) {
+      setLoading(false);
+      return undefined;
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      setLoading(false);
+    }).catch(() => {
+      setSession(null);
+      setUser(null);
       setLoading(false);
     });
 

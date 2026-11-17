@@ -1,10 +1,14 @@
 import { jwtVerify, createRemoteJWKSet } from 'jose';
 
-const JWKS = createRemoteJWKSet(
-  new URL(`${process.env.SUPABASE_URL}/auth/v1/.well-known/jwks.json`)
-);
+const supabaseUrl = process.env.SUPABASE_URL;
+const JWKS = supabaseUrl
+  ? createRemoteJWKSet(new URL(`${supabaseUrl}/auth/v1/.well-known/jwks.json`))
+  : null;
 
 export default async function requireAuth(req, res, next) {
+  if (!JWKS || !supabaseUrl) {
+    return res.status(503).json({ success: false, error: 'Authentication is not configured on this server.' });
+  }
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
     return res.status(401).json({ success: false, error: 'Missing authorization token' });

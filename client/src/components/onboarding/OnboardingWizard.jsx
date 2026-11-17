@@ -22,27 +22,30 @@ import { inferSemesterDates } from '../../utils/dateHelpers.js';
  */
 
 const STEPS = ['welcome', 'name', 'school', 'type', 'semester', 'done'];
+const DEMO_STEPS = ['welcome', 'type', 'done'];
 
-// slide direction for the AnimatePresence transition
+// Steps replace in place. A carousel-like horizontal slide makes a setup flow
+// feel more theatrical than useful, so transitions are deliberately fade-only.
 const variants = {
-  enter: (dir) => ({ opacity: 0, x: dir > 0 ? 40 : -40 }),
-  center: { opacity: 1, x: 0 },
-  exit: (dir) => ({ opacity: 0, x: dir > 0 ? -40 : 40 }),
+  enter: { opacity: 0 },
+  center: { opacity: 1 },
+  exit: { opacity: 0 },
 };
 
-export default function OnboardingWizard() {
-  const { updateSettings, updateSchool, setStudentType, addSemester } = useApp();
+export default function OnboardingWizard({ demo = false, onFinish: onDemoFinish }) {
+  const { updateSettings, updateSchool, setStudentType, addSemester, settings, activeSemester } = useApp();
   const navigate = useNavigate();
 
-  const [[index, dir], setStep] = useState([0, 1]);
-  const [name, setName] = useState('');
-  const [school, setSchool] = useState('');
-  const [type, setType] = useState(null);
-  const [sem, setSem] = useState({ name: '', startDate: '', endDate: '' });
+  const [index, setIndex] = useState(0);
+  const [name, setName] = useState(() => demo ? settings.studentName || 'Maya' : '');
+  const [school, setSchool] = useState(() => demo ? settings.school || '' : '');
+  const [type, setType] = useState(() => demo ? settings.studentType || 'international' : null);
+  const [sem, setSem] = useState(() => demo ? { name: activeSemester?.name || '', startDate: activeSemester?.startDate || '', endDate: activeSemester?.endDate || '' } : { name: '', startDate: '', endDate: '' });
 
-  const step = STEPS[index];
-  const go = (nextIndex) => setStep([nextIndex, nextIndex > index ? 1 : -1]);
-  const next = () => go(Math.min(index + 1, STEPS.length - 1));
+  const steps = demo ? DEMO_STEPS : STEPS;
+  const step = steps[index];
+  const go = (nextIndex) => setIndex(nextIndex);
+  const next = () => go(Math.min(index + 1, steps.length - 1));
   const back = () => go(Math.max(index - 1, 0));
 
   // Commit-on-advance so partial progress persists; guard stays held until finish.
@@ -66,10 +69,11 @@ export default function OnboardingWizard() {
       });
     }
     setStudentType(type); // LAST — releases RequireStudentType guard
+    if (demo) { onDemoFinish?.(); return; }
     navigate('/');
   };
 
-  const progress = index / (STEPS.length - 1);
+  const progress = index / (steps.length - 1);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 pt-safe pb-safe">
@@ -88,24 +92,23 @@ export default function OnboardingWizard() {
             />
           </div>
           <span className="text-xs font-mono text-base-content/40 tabular w-10 text-right">
-            {index + 1}/{STEPS.length}
+            {index + 1}/{steps.length}
           </span>
         </div>
 
         <div className="glass-card rounded-3xl p-6 sm:p-8 min-h-[22rem] flex flex-col">
-          <AnimatePresence mode="wait" custom={dir}>
+          <AnimatePresence mode="wait">
             <motion.div
               key={step}
-              custom={dir}
               variants={variants}
               initial="enter"
               animate="center"
               exit="exit"
-              transition={{ duration: 0.25, ease: 'easeOut' }}
+              transition={{ duration: 0.16, ease: 'easeOut' }}
               className="flex-1 flex flex-col"
             >
               {step === 'welcome' && (
-                <Welcome onStart={next} />
+                <Welcome onStart={next} demo={demo} />
               )}
 
               {step === 'name' && (
@@ -229,7 +232,7 @@ export default function OnboardingWizard() {
               )}
 
               {step === 'done' && (
-                <Done name={name} school={school} type={type} onFinish={finish} />
+                <Done name={name} school={school} type={type} onFinish={finish} demo={demo} />
               )}
             </motion.div>
           </AnimatePresence>
@@ -282,13 +285,13 @@ export default function OnboardingWizard() {
 
 /* ── sub-views ─────────────────────────────────────────────────────────── */
 
-function Welcome({ onStart }) {
+function Welcome({ onStart, demo }) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center text-center">
       <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 200, damping: 18 }}
+        initial={{ y: 8, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
         className="w-16 h-16 rounded-3xl bg-primary/15 border border-primary/25 flex items-center justify-center mb-6"
       >
         <GraduationCap size={34} className="text-primary" />
@@ -296,17 +299,13 @@ function Welcome({ onStart }) {
       <h1 className="text-3xl font-display font-bold tracking-tight">
         Welcome to ultraGrade<span className="text-primary">.</span>
       </h1>
-      <p className="text-base-content/60 mt-3 max-w-sm">
-        Your all-in-one planner for Ontario students — grades, GPA, timetable,
-        deadlines, and the immigration info that matters. Let's set you up in
-        under a minute.
-      </p>
+      <p className="text-base-content/60 mt-3 max-w-sm">{demo ? 'Maya’s workspace is ready with courses, deadlines, a calendar, and international-student context. Choose the perspective you want to explore, then we’ll show you the product.' : 'Your all-in-one planner for Ontario students — grades, GPA, timetable, deadlines, and the immigration info that matters. Let’s set you up in under a minute.'}</p>
       <button
         type="button"
         onClick={onStart}
         className="btn btn-primary rounded-full gap-2 mt-8"
       >
-        <Sparkles size={16} /> Get started
+        <Sparkles size={16} /> {demo ? 'Explore the demo' : 'Get started'}
       </button>
     </div>
   );
@@ -367,7 +366,7 @@ function TypeCard({ active, onClick, icon: Icon, styles, title, desc }) {
   );
 }
 
-function Done({ name, school, type, onFinish }) {
+function Done({ name, school, type, onFinish, demo = false }) {
   const rows = [
     name && ['Name', name],
     school && ['School', school],
@@ -377,9 +376,9 @@ function Done({ name, school, type, onFinish }) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center text-center">
       <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 220, damping: 16 }}
+        initial={{ y: 8, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
         className="w-16 h-16 rounded-3xl bg-success/15 border border-success/30 flex items-center justify-center mb-6"
       >
         <Check size={34} className="text-success" />
@@ -387,10 +386,7 @@ function Done({ name, school, type, onFinish }) {
       <h1 className="text-2xl font-display font-bold tracking-tight">
         You're all set<span className="text-primary">.</span>
       </h1>
-      <p className="text-base-content/55 mt-2 mb-6 max-w-xs">
-        Your workspace is ready. Add courses and import an outline any time from
-        the Grades page.
-      </p>
+      <p className="text-base-content/55 mt-2 mb-6 max-w-xs">{demo ? 'The demo is ready. Next, we’ll take you through the overview, Life Hub, and Ask ultraGrade using this setup.' : 'Your workspace is ready. Add courses and import an outline any time from the Grades page.'}</p>
 
       {rows.length > 0 && (
         <div className="w-full max-w-xs pill rounded-2xl px-4 py-3 mb-6 text-left space-y-1.5">
@@ -408,7 +404,7 @@ function Done({ name, school, type, onFinish }) {
         onClick={onFinish}
         className="btn btn-primary rounded-full gap-2"
       >
-        Enter ultraGrade <ArrowRight size={16} />
+        {demo ? 'Start the walkthrough' : 'Enter ultraGrade'} <ArrowRight size={16} />
       </button>
     </div>
   );

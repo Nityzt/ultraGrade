@@ -36,7 +36,9 @@ const optionalTime = z
 
 const quickAddSchema = z
   .object({
+    action: z.enum(['create', 'complete_task', 'reschedule_task']).catch('create'),
     kind: z.enum(['task', 'grade', 'class']),
+    taskId: optionalText,
 
     // Resolved course — Gemini is given the user's courses and echoes the
     // matching id (or ""). We re-validate it against the known ids in the route
@@ -71,6 +73,8 @@ function pruneUndefined(obj) {
 
 /** True when the parsed item has no actionable content for its kind. */
 function isUnusable(d) {
+  if (d.action === 'complete_task') return !d.taskId;
+  if (d.action === 'reschedule_task') return !d.taskId || !d.dueDate;
   if (d.kind === 'task') return !d.title;
   if (d.kind === 'grade') return d.score === undefined || d.maxScore === undefined;
   if (d.kind === 'class') return d.dayOfWeek === undefined || !d.startTime || !d.endTime;
@@ -84,7 +88,7 @@ function isUnusable(d) {
  * @returns {Object} A clean, committable quick-add object
  * @throws {Error} When the payload is not usable
  */
-export function validateQuickAdd(raw, knownCourseIds = []) {
+export function validateQuickAdd(raw, knownCourseIds = [], knownTaskIds = []) {
   const result = quickAddSchema.safeParse(raw);
   if (!result.success) {
     throw new Error('Could not understand that — try rephrasing with a bit more detail.');
@@ -95,6 +99,7 @@ export function validateQuickAdd(raw, knownCourseIds = []) {
   if (data.courseId && !knownCourseIds.includes(data.courseId)) {
     data.courseId = undefined;
   }
+  if (data.taskId && !knownTaskIds.includes(data.taskId)) data.taskId = undefined;
 
   if (isUnusable(data)) {
     throw new Error('Not enough detail to add that. Include a title, a grade, or a day + time.');

@@ -65,7 +65,9 @@ export const GPA_SCALES = {
 export function getGradeInfo(percentage, scaleKey = 'standard-4.0') {
   const scale = GPA_SCALES[scaleKey];
   if (!scale) return { letter: 'N/A', points: 0 };
-  const pct = Math.floor(percentage);
+  const numeric = Number(percentage);
+  if (!Number.isFinite(numeric)) return { letter: 'N/A', points: 0 };
+  const pct = Math.min(100, Math.max(0, Math.floor(numeric)));
   const grade = scale.grades.find(g => pct >= g.minPercent && pct <= g.maxPercent);
   return grade || { letter: 'F', points: 0 };
 }

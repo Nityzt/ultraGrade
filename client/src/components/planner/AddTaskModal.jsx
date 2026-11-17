@@ -6,7 +6,7 @@ import { today } from '../../utils/dateHelpers.js';
 
 export default function AddTaskModal({ isOpen, onClose, editingTask }) {
   const { addTask, updateTask, activeCourses } = useApp();
-  const { register, handleSubmit, reset } = useForm();
+  const { register, handleSubmit, reset, formState: { errors } } = useForm();
 
   useEffect(() => {
     reset(editingTask
@@ -27,6 +27,7 @@ export default function AddTaskModal({ isOpen, onClose, editingTask }) {
         <div className="form-control">
           <label className="label"><span className="label-text">Title</span></label>
           <input {...register('title', { required: true })} className="input input-bordered input-sm" placeholder="Assignment 2 — UML Diagrams" />
+          {errors.title && <span className="text-error text-xs mt-1">Enter a title.</span>}
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -64,6 +65,7 @@ export default function AddTaskModal({ isOpen, onClose, editingTask }) {
           <div className="form-control">
             <label className="label"><span className="label-text">Due Date</span></label>
             <input {...register('dueDate', { required: true })} type="date" className="input input-bordered input-sm" />
+            {errors.dueDate && <span className="text-error text-xs mt-1">Choose a due date.</span>}
           </div>
           <div className="form-control">
             <label className="label"><span className="label-text">Due Time</span></label>

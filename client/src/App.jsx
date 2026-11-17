@@ -11,6 +11,9 @@ import { isThemeSweepActive } from './hooks/useThemeTransition.js';
 // install are instant and offline still works.
 import Login from './pages/Login';
 import ErrorBoundary from './components/ui/ErrorBoundary.jsx';
+import { AskUltraGrade } from './components/demo/DemoAssistant.jsx';
+import DemoWalkthrough from './components/demo/DemoWalkthrough.jsx';
+import DemoProvider from './demo/DemoProvider.jsx';
 
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
@@ -18,9 +21,13 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Grades = lazy(() => import('./pages/Grades'));
 const Timetable = lazy(() => import('./pages/Timetable'));
 const Planner = lazy(() => import('./pages/Planner'));
-const Immigration = lazy(() => import('./pages/Immigration'));
-const StudentResources = lazy(() => import('./pages/StudentResources'));
 const Settings = lazy(() => import('./pages/Settings'));
+const DemoCommandCenter = lazy(() => import('./pages/DemoCommandCenter'));
+const LifeHub = lazy(() => import('./pages/LifeHub'));
+const Connections = lazy(() => import('./pages/Connections'));
+const DemoProfile = lazy(() => import('./pages/DemoProfile'));
+const Ask = lazy(() => import('./pages/Ask'));
+const Profile = lazy(() => import('./pages/Profile'));
 
 // Matches the hydration spinner in RequireStudentType so a code-split page
 // loading reads as the same "one moment" state everywhere.
@@ -57,14 +64,12 @@ function RequireStudentType({ children }) {
 
 function InternationalOnly() {
   const { settings } = useApp();
-  if (settings.studentType === 'domestic') return <Navigate to="/resources" replace />;
-  return <Immigration />;
+  return <Navigate to={settings.studentType === 'domestic' ? '/life?tab=resources' : '/life?tab=immigration'} replace />;
 }
 
 function DomesticOnly() {
   const { settings } = useApp();
-  if (settings.studentType === 'international') return <Navigate to="/immigration" replace />;
-  return <StudentResources />;
+  return <Navigate to={settings.studentType === 'international' ? '/life?tab=immigration' : '/life?tab=resources'} replace />;
 }
 
 export default function App() {
@@ -94,6 +99,19 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/onboarding" element={<Onboarding />} />
+      <Route path="/demo" element={<DemoProvider><DemoWalkthrough><Layout demo /></DemoWalkthrough></DemoProvider>}>
+        <Route index element={<DemoCommandCenter />} />
+        <Route path="ask" element={<AskUltraGrade />} />
+        <Route path="life" element={<LifeHub />} />
+        <Route path="connections" element={<Connections />} />
+        <Route path="profile" element={<DemoProfile />} />
+        <Route path="grades" element={<Grades />} />
+        <Route path="timetable" element={<Timetable />} />
+        <Route path="planner" element={<Planner />} />
+        <Route path="immigration" element={<LifeHub />} />
+        <Route path="resources" element={<LifeHub />} />
+        <Route path="settings" element={<DemoProfile />} />
+      </Route>
       <Route
         path="/*"
         element={
@@ -107,6 +125,10 @@ export default function App() {
         }
       >
         <Route index element={<Dashboard />} />
+        <Route path="ask" element={<Ask />} />
+        <Route path="life" element={<LifeHub />} />
+        <Route path="connections" element={<Connections />} />
+        <Route path="profile" element={<Profile />} />
         <Route path="grades" element={<Grades />} />
         <Route path="timetable" element={<Timetable />} />
         <Route path="planner" element={<Planner />} />

@@ -16,9 +16,14 @@ router.post('/', async (req, res) => {
     const courses = rawCourses
       .filter((c) => c && typeof c.id === 'string')
       .map((c) => ({ id: c.id, code: String(c.code || ''), name: String(c.name || '') }));
+    const rawTasks = Array.isArray(req.body?.tasks) ? req.body.tasks.slice(0, 100) : [];
+    const tasks = rawTasks.filter(t => t && typeof t.id === 'string').map(t => ({
+      id: t.id, title: String(t.title || ''), dueDate: String(t.dueDate || ''), courseCode: String(t.courseCode || '')
+    }));
 
     const context = {
       courses,
+      tasks,
       currentDate: new Date().toISOString().slice(0, 10),
     };
 
@@ -35,6 +40,9 @@ router.post('/', async (req, res) => {
     }
     if (msg.includes('503') || msg.toLowerCase().includes('unavailable') || msg.toLowerCase().includes('overloaded') || msg.toLowerCase().includes('high demand')) {
       return res.status(503).json({ success: false, error: 'The AI service is briefly overloaded. Please try again in a moment.' });
+    }
+    if (msg.toLowerCase().includes('timed out')) {
+      return res.status(504).json({ success: false, error: 'The AI service took too long to respond. Please try again.' });
     }
     // Validation errors from quickAddSchema carry a user-friendly message.
     if (msg.includes('understand') || msg.includes('detail')) {

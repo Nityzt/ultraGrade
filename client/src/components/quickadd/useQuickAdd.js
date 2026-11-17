@@ -13,7 +13,7 @@ import { randomCourseColor } from '../../utils/colorHelpers.js';
  * among navigation/action items.
  */
 export function useQuickAdd() {
-  const { addTask, addTimetableEntry, addGrade, activeCourses, courses, activeSemester } = useApp();
+  const { addTask, addTimetableEntry, addGrade, updateTask, activeCourses, activeTasks, courses, activeSemester } = useApp();
 
   const [status, setStatus] = useState('idle'); // idle | loading | preview | error
   const [parsed, setParsed] = useState(null);
@@ -47,6 +47,12 @@ export function useQuickAdd() {
         {
           text: q,
           courses: activeCourses.map((c) => ({ id: c.id, code: c.code, name: c.name })),
+          tasks: activeTasks.filter(t => !t.completed).map(t => ({
+            id: t.id,
+            title: t.title,
+            dueDate: t.dueDate,
+            courseCode: courses.find(c => c.id === t.courseId)?.code || '',
+          })),
         },
         { headers: { Authorization: `Bearer ${session.access_token}` } }
       );
@@ -74,7 +80,11 @@ export function useQuickAdd() {
 
   const commit = useCallback(() => {
     if (!parsed) return;
-    if (parsed.kind === 'task') {
+    if (parsed.action === 'complete_task') {
+      updateTask(parsed.taskId, { completed: true, completedAt: new Date().toISOString() });
+    } else if (parsed.action === 'reschedule_task') {
+      updateTask(parsed.taskId, { dueDate: parsed.dueDate, dueTime: parsed.dueTime || '23:59' });
+    } else if (parsed.kind === 'task') {
       addTask({
         title: parsed.title,
         type: parsed.taskType || 'assignment',
@@ -102,9 +112,11 @@ export function useQuickAdd() {
         maxScore: parsed.maxScore,
       });
     }
-  }, [parsed, course, gradeCategory, addTask, addTimetableEntry, addGrade]);
+  }, [parsed, course, gradeCategory, addTask, addTimetableEntry, addGrade, updateTask]);
 
-  const canCommit = parsed && !(parsed.kind === 'grade' && !gradeCategory);
+  const canCommit = parsed
+    && !(parsed.kind === 'grade' && !gradeCategory)
+    && (!['complete_task', 'reschedule_task'].includes(parsed.action) || activeTasks.some(t => t.id === parsed.taskId));
 
   return { status, parsed, error, course, gradeCategory, submit, commit, canCommit, reset };
 }

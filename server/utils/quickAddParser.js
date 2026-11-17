@@ -10,7 +10,9 @@ const MODEL = 'gemini-2.5-flash'; // 2.0-flash reports free-tier limit: 0 — se
 const RESPONSE_SCHEMA = {
   type: SchemaType.OBJECT,
   properties: {
+    action: { type: SchemaType.STRING, enum: ['create', 'complete_task', 'reschedule_task'], format: 'enum' },
     kind: { type: SchemaType.STRING, enum: ['task', 'grade', 'class'], format: 'enum' },
+    taskId: { type: SchemaType.STRING },
     courseId: { type: SchemaType.STRING },
     // task
     title: { type: SchemaType.STRING },
@@ -33,14 +35,19 @@ const RESPONSE_SCHEMA = {
   required: ['kind'],
 };
 
-function buildPrompt({ courses, currentDate }) {
+function buildPrompt({ courses, tasks, currentDate }) {
   const courseLines = (courses || [])
     .map((c) => `  - id="${c.id}" code="${c.code || ''}" name="${c.name || ''}"`)
     .join('\n') || '  (none)';
+  const taskLines = (tasks || [])
+    .map(t => `  - id="${t.id}" title="${t.title}" due="${t.dueDate || ''}" course="${t.courseCode || ''}"`)
+    .join('\n') || '  (none)';
 
-  return `You convert one short natural-language note from a student into a single structured item for their planner.
+  return `You convert one short natural-language note from a student into one safe planner action.
 
 Today's date is ${currentDate} (use it to resolve relative dates like "tomorrow", "next friday", "in 2 weeks").
+
+Set action to "create" for a new item, "complete_task" to mark an existing open task done, or "reschedule_task" to move an existing open task. For edit actions, set taskId to the exact ID from the open task list and never invent an ID.
 
 Classify the note into exactly one "kind":
 - "task": an assignment, exam, quiz, project, or personal to-do with a deadline. Fill: title, taskType, dueDate (YYYY-MM-DD), dueTime (HH:MM, 24h; default "23:59" if only a day is given), priority.
@@ -50,6 +57,9 @@ Classify the note into exactly one "kind":
 COURSE MATCHING — the student's courses are listed below. If the note references one (by code like "cs350"/"eecs 3311" or by name), set courseId to that course's EXACT id from the list. If no course clearly matches, set courseId to "".
 Courses:
 ${courseLines}
+
+Open tasks:
+${taskLines}
 
 Rules:
 - Return the single best interpretation. Prefer "task" when a deadline is implied.
@@ -91,5 +101,6 @@ export async function parseQuickAdd(text, context = {}) {
   }
 
   const knownIds = (context.courses || []).map((c) => c.id);
-  return validateQuickAdd(parsed, knownIds);
+  const knownTaskIds = (context.tasks || []).map((t) => t.id);
+  return validateQuickAdd(parsed, knownIds, knownTaskIds);
 }

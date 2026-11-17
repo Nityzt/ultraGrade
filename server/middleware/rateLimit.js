@@ -15,7 +15,7 @@ import { Redis } from '@upstash/redis';
  * @param {number}  opts.windowMs - Window length in milliseconds
  * @returns {import('express').RequestHandler}
  */
-export function rateLimit({ name, limit, windowMs }) {
+export function rateLimit({ name, limit, windowMs, failClosed = false }) {
   const limiter = createLimiter({ name, limit, windowMs });
 
   return async function rateLimitMiddleware(req, res, next) {
@@ -36,8 +36,10 @@ export function rateLimit({ name, limit, windowMs }) {
       }
       next();
     } catch (err) {
-      // Never let a limiter failure take down the endpoint — fail open.
-      console.error('Rate limiter error (failing open):', err.message);
+      console.error(`Rate limiter error (${name}):`, err.message);
+      if (failClosed) {
+        return res.status(503).json({ success: false, error: 'This service is temporarily unavailable. Please try again shortly.' });
+      }
       next();
     }
   };

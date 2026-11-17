@@ -143,6 +143,15 @@ export default function InfoSection({ title, data, onRefresh, loading, icon: Ico
                   </button>
                 </div>
               )}
+              {data?.error && (
+                <button
+                  onClick={e => { e.stopPropagation(); onRefresh(); }}
+                  disabled={loading}
+                  className="btn btn-ghost btn-sm mt-3"
+                >
+                  <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Retry
+                </button>
+              )}
             </div>
           </motion.div>
         )}

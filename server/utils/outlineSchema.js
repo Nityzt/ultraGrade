@@ -97,5 +97,13 @@ export function validateOutline(raw) {
   if (isEmpty(result.data)) {
     throw new Error('No course details could be extracted from this document');
   }
-  return pruneUndefined(result.data);
+  const diagnostics = {};
+  for (const key of ['schedule', 'assessments', 'deadlines']) {
+    if (Array.isArray(raw?.[key]) && raw[key].length > result.data[key].length) {
+      diagnostics[`${key}Skipped`] = raw[key].length - result.data[key].length;
+    }
+  }
+  const weightTotal = result.data.assessments.reduce((sum, item) => sum + item.weight, 0);
+  if (result.data.assessments.length && Math.abs(weightTotal - 100) > 1) diagnostics.assessmentWeightTotal = weightTotal;
+  return { ...pruneUndefined(result.data), diagnostics };
 }

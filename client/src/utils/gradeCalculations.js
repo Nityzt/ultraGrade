@@ -3,16 +3,17 @@ import { getGradeInfo, GPA_SCALES } from '../data/gpaScales.js';
 // Calculate grade for a single category
 export function calcCategoryGrade(category) {
   const { grades = [], dropLowest = false } = category;
-  if (grades.length === 0) return null;
+  const validGrades = grades.filter(g => Number.isFinite(Number(g.score)) && Number(g.maxScore) > 0);
+  if (validGrades.length === 0) return null;
 
-  let workingGrades = [...grades];
+  let workingGrades = [...validGrades];
 
   // Drop lowest by score percentage if enabled
   if (dropLowest && workingGrades.length > 1) {
     let lowestIdx = 0;
-    let lowestPct = workingGrades[0].score / workingGrades[0].maxScore;
+    let lowestPct = Number(workingGrades[0].score) / Number(workingGrades[0].maxScore);
     for (let i = 1; i < workingGrades.length; i++) {
-      const pct = workingGrades[i].score / workingGrades[i].maxScore;
+      const pct = Number(workingGrades[i].score) / Number(workingGrades[i].maxScore);
       if (pct < lowestPct) { lowestPct = pct; lowestIdx = i; }
     }
     workingGrades = workingGrades.filter((_, i) => i !== lowestIdx);
@@ -21,7 +22,7 @@ export function calcCategoryGrade(category) {
   // Weighted average within category (each grade has its own weight, default 1)
   const totalWeight = workingGrades.reduce((sum, g) => sum + (g.weight || 1), 0);
   const weightedSum = workingGrades.reduce((sum, g) => {
-    const pct = (g.score / g.maxScore) * 100;
+    const pct = (Number(g.score) / Number(g.maxScore)) * 100;
     return sum + pct * (g.weight || 1);
   }, 0);
 
@@ -39,12 +40,14 @@ export function calcCourseGrade(course) {
 
   for (const cat of categories) {
     const catGrade = calcCategoryGrade(cat);
+    const weight = Number(cat.weight);
+    if (!Number.isFinite(weight) || weight < 0) continue;
     if (catGrade !== null) {
-      weightedRunning += catGrade * (cat.weight / 100);
-      assessedWeight += cat.weight;
+      weightedRunning += catGrade * (weight / 100);
+      assessedWeight += weight;
     }
     // For projected: assume 0 on unassessed
-    weightedProjected += (catGrade ?? 0) * (cat.weight / 100);
+    weightedProjected += (catGrade ?? 0) * (weight / 100);
   }
 
   const running = assessedWeight > 0 ? (weightedRunning / (assessedWeight / 100)) : null;
@@ -63,12 +66,14 @@ export function calcWhatDoINeed(course, targetGrade, targetCategoryIds) {
 
   for (const cat of categories) {
     const catGrade = calcCategoryGrade(cat);
+    const weight = Number(cat.weight);
+    if (!Number.isFinite(weight) || weight < 0) continue;
     if (targetCategoryIds.includes(cat.id)) {
       // This is a category we're solving for
-      remainingWeight += cat.weight;
+      remainingWeight += weight;
     } else if (catGrade !== null) {
       // Already has grades — locked in
-      lockedPoints += catGrade * (cat.weight / 100);
+      lockedPoints += catGrade * (weight / 100);
     }
     // If catGrade is null and not in targetCategoryIds, assume 0 (already accounted for)
   }

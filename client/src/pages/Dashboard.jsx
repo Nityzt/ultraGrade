@@ -1,193 +1,60 @@
-import { useState } from 'react';
-import { useApp } from '../context/AppContext';
-import { useNavigate } from 'react-router-dom';
-import QuickStatsRow from '../components/dashboard/QuickStatsRow';
-import GPASummaryWidget from '../components/dashboard/GPASummaryWidget';
-import UpcomingDeadlinesWidget from '../components/dashboard/UpcomingDeadlinesWidget';
-import TodaysScheduleWidget from '../components/dashboard/TodaysScheduleWidget';
-import CourseStatusWidget from '../components/dashboard/CourseStatusWidget';
-import Modal from '../components/ui/Modal';
+import { useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { PlusCircle, GraduationCap, AlertCircle } from 'lucide-react';
-import { inferSemesterDates } from '../utils/dateHelpers';
+import { CalendarCheck, CalendarDays, FileUp, GraduationCap, Link2, Plus, ShieldCheck, Sparkles } from 'lucide-react';
+import { useApp } from '../context/AppContext.jsx';
+import { calcSemesterGPA } from '../utils/gradeCalculations.js';
+import { formatTime, inferSemesterDates } from '../utils/dateHelpers.js';
+import { getNextActions } from '../utils/commandCenter.js';
+import Modal from '../components/ui/Modal.jsx';
+import { ActionRow, EmptyState, Metric, SectionHeader, StatusPill, Surface, TimelineItem } from '../components/ui/CommandPrimitives.jsx';
 
 function AddSemesterModal({ open, onClose }) {
   const { addSemester, setActiveSemester } = useApp();
-  const { register, handleSubmit, reset, setValue, getValues, formState: { errors } } = useForm({
-    defaultValues: { name: '', startDate: '', endDate: '' }
-  });
-
+  const { register, handleSubmit, reset, setValue, getValues, formState: { errors } } = useForm({ defaultValues: { name: '', startDate: '', endDate: '' } });
   const nameReg = register('name', { required: 'Required' });
-  // Smart-fill: "Fall 2025" → Sep 1–Dec 31, etc. Only when dates are still empty
-  // so we never clobber a manual edit.
-  const handleNameChange = (e) => {
-    const inferred = inferSemesterDates(e.target.value);
-    if (inferred && !getValues('startDate') && !getValues('endDate')) {
-      setValue('startDate', inferred.startDate);
-      setValue('endDate', inferred.endDate);
-    }
+  const submit = (data) => { const semester = addSemester(data); setActiveSemester(semester.id); reset(); onClose(); };
+  const fillDates = (event) => {
+    const inferred = inferSemesterDates(event.target.value);
+    if (inferred && !getValues('startDate') && !getValues('endDate')) { setValue('startDate', inferred.startDate); setValue('endDate', inferred.endDate); }
   };
-
-  const onSubmit = (data) => {
-    const sem = addSemester(data);
-    setActiveSemester(sem.id);
-    reset();
-    onClose();
-  };
-
-  return (
-    <Modal isOpen={open} onClose={onClose} title="Create Semester" size="sm">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <div className="form-control">
-          <label className="label"><span className="label-text">Semester Name</span></label>
-          <input
-            {...nameReg}
-            onChange={(e) => { nameReg.onChange(e); handleNameChange(e); }}
-            className="input input-bordered w-full"
-            placeholder="e.g. Fall 2025"
-          />
-          {errors.name && <p className="text-error text-xs mt-1">{errors.name.message}</p>}
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="form-control">
-            <label className="label"><span className="label-text">Start Date</span></label>
-            <input type="date" {...register('startDate')} className="input input-bordered w-full" />
-          </div>
-          <div className="form-control">
-            <label className="label"><span className="label-text">End Date</span></label>
-            <input type="date" {...register('endDate')} className="input input-bordered w-full" />
-          </div>
-        </div>
-        <div className="flex justify-end gap-2 pt-2">
-          <button type="button" onClick={onClose} className="btn btn-ghost">Cancel</button>
-          <button type="submit" className="btn btn-primary">Create Semester</button>
-        </div>
-      </form>
-    </Modal>
-  );
+  return <Modal isOpen={open} onClose={onClose} title="Create a semester" size="sm"><form onSubmit={handleSubmit(submit)} className="space-y-4"><div><label className="semantic-label block mb-2">Semester name</label><input {...nameReg} onChange={(event) => { nameReg.onChange(event); fillDates(event); }} className="input input-bordered w-full" placeholder="e.g. Fall 2026" />{errors.name && <p className="text-error text-xs mt-1">{errors.name.message}</p>}</div><div className="grid grid-cols-2 gap-3"><div><label className="semantic-label block mb-2">Starts</label><input type="date" {...register('startDate')} className="input input-bordered w-full" /></div><div><label className="semantic-label block mb-2">Ends</label><input type="date" {...register('endDate')} className="input input-bordered w-full" /></div></div><div className="flex justify-end gap-2"><button type="button" onClick={onClose} className="btn btn-ghost">Cancel</button><button className="btn btn-primary">Create semester</button></div></form></Modal>;
 }
 
-function EmptyDashboard({ onCreateSemester }) {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4 animate-fade-up">
-      <div className="mb-6 w-24 h-24 rounded-[28px] bg-primary/12 border border-primary/20 flex items-center justify-center shadow-bloom">
-        <GraduationCap size={52} className="text-primary" />
-      </div>
-      <h2 className="text-2xl font-display font-bold mb-2">Welcome to ultraGrade</h2>
-      <p className="text-base-content/55 mb-6 max-w-sm">
-        Start by creating your first semester. Then add courses, build your timetable, and track every deadline.
-      </p>
-      <button onClick={onCreateSemester} className="btn btn-primary gap-2 rounded-full">
-        <PlusCircle size={18} /> Create your first semester
-      </button>
-    </div>
-  );
-}
+const dateKey = (date) => new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 
 export default function Dashboard() {
-  const { semesters, activeSemester, settings } = useApp();
-  const [addSemOpen, setAddSemOpen] = useState(false);
+  const { semesters, activeSemester, activeCourses, activeTasks, activeTimetable, settings } = useApp();
+  const [addSemesterOpen, setAddSemesterOpen] = useState(false);
   const navigate = useNavigate();
+  const now = new Date();
+  const today = dateKey(now);
+  const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 18 ? 'Good afternoon' : 'Good evening';
+  const name = settings.studentName || 'there';
+  const courseMap = useMemo(() => Object.fromEntries(activeCourses.map(course => [course.id, course])), [activeCourses]);
+  const todaySchedule = useMemo(() => activeTimetable.filter(entry => entry.dayOfWeek === now.getDay()).sort((a, b) => a.startTime.localeCompare(b.startTime)), [activeTimetable, now]);
+  const todayTasks = useMemo(() => activeTasks.filter(task => !task.completed && task.dueDate === today), [activeTasks, today]);
+  const gpa = calcSemesterGPA(activeCourses, settings.gpaScale);
+  const gradedItems = activeCourses.flatMap(course => (course.categories || []).flatMap(category => category.grades || [])).length;
+  const actions = getNextActions({ tasks: activeTasks, courses: activeCourses, settings, now }).map(item => ({
+    ...item,
+    icon: { permit: ShieldCheck, deadline: CalendarCheck, outline: FileUp, calendar: Link2 }[item.key],
+    action: { permit: 'Life Hub', deadline: 'Plan', outline: 'Import', calendar: 'Connect' }[item.key],
+    onClick: () => navigate(item.to),
+  }));
 
-  const today = new Date();
-  const hour = today.getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-  const name = settings.studentName || (settings.studentType === 'international' ? 'International Student' : 'Student');
+  if (!semesters.length) return <div className="command-page command-empty-page"><Surface elevated className="max-w-xl mx-auto p-7 md:p-10 text-center"><StatusPill tone="primary">Start here</StatusPill><h1 className="display-title text-4xl mt-5">Build a calmer term.</h1><p className="text-base-content/60 leading-6 mt-4">Create a semester first. ultraGrade will then turn your courses, deadlines, and schedule into a focused daily view.</p><button type="button" onClick={() => setAddSemesterOpen(true)} className="btn btn-primary rounded-full mt-7 gap-2"><Plus size={16} /> Create a semester</button></Surface><AddSemesterModal open={addSemesterOpen} onClose={() => setAddSemesterOpen(false)} /></div>;
 
-  const hasPermitExpiry = settings.studentType === 'international' && settings.permitExpiryDate;
-  const daysUntilExpiry = hasPermitExpiry
-    ? Math.ceil((new Date(settings.permitExpiryDate) - today) / (1000 * 60 * 60 * 24))
-    : null;
-
-  if (semesters.length === 0) {
-    return (
-      <div className="p-4 md:p-6">
-        <EmptyDashboard onCreateSemester={() => setAddSemOpen(true)} />
-        <AddSemesterModal open={addSemOpen} onClose={() => setAddSemOpen(false)} />
+  return <div className="command-page">
+    <header className="command-header"><div><p className="semantic-label">{now.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' })}{activeSemester ? ` · ${activeSemester.name}` : ''}</p><h1 className="display-title mt-2">{greeting}, {name}<span className="text-primary">.</span></h1><div className="flex flex-wrap gap-2 mt-4">{settings.studentType === 'international' && <StatusPill tone="primary">International student</StatusPill>}{settings.calendarConnected && <StatusPill tone="success"><span className="status-dot" /> Calendar connected</StatusPill>}</div></div><button type="button" onClick={() => window.dispatchEvent(new Event('ug:assistant'))} className="btn btn-primary rounded-full gap-2 command-ask"><Sparkles size={16} /> Ask ultraGrade</button></header>
+    <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,.78fr)] gap-5">
+      <div className="space-y-5">
+        <Surface elevated className="hero-surface p-5 md:p-7"><p className="semantic-label">Your next move, in one place</p><h2 className="text-2xl md:text-[2rem] font-semibold tracking-[-0.04em] leading-tight max-w-xl mt-2">Ask once. Know what matters. Act before it becomes stressful.</h2><button type="button" onClick={() => window.dispatchEvent(new Event('ug:assistant'))} className="hero-prompt mt-6"><Sparkles size={18} className="text-primary" /><span>What do you need help with?</span><kbd>⌘ K</kbd></button><div className="flex flex-wrap gap-2 mt-3">{['What is due next?', 'Import my outline', 'Plan my week', 'Find my professor'].map(prompt => <button type="button" key={prompt} onClick={() => { window.dispatchEvent(new Event('ug:assistant')); }} className="prompt-chip">{prompt}</button>)}</div></Surface>
+        <section><SectionHeader eyebrow="Today at a glance" title="The useful version of your schedule" action={<Link to="/timetable" className="text-xs font-semibold text-primary">Full timetable</Link>} />{todaySchedule.length || todayTasks.length ? <Surface className="p-2">{todaySchedule.map(entry => <TimelineItem key={entry.id} time={formatTime(entry.startTime)} title={entry.label} detail={[entry.location, entry.professor].filter(Boolean).join(' · ')} tone="primary" />)}{todayTasks.map(task => <TimelineItem key={task.id} time={task.dueTime && task.dueTime !== '23:59' ? formatTime(task.dueTime) : 'Today'} title={task.title} detail={`${courseMap[task.courseId]?.code || 'Personal'} deadline`} tone="warning" />)}</Surface> : <Surface><EmptyState title="No commitments scheduled today" detail="Add a class or task, or connect your calendar to make this view useful." action={<button type="button" onClick={() => navigate('/connections')} className="btn btn-ghost btn-sm rounded-full">Open connections</button>} /></Surface>}</section>
+        <section><SectionHeader eyebrow="Academic pulse" title="Progress without the noise" action={<Link to="/grades" className="text-xs font-semibold text-primary">Open grades</Link>} /><Surface className="grid grid-cols-3 divide-x divide-base-content/8"><Metric label="Term GPA" value={gpa === null ? '—' : gpa.toFixed(2)} detail={gpa === null ? 'Add a grade to begin' : 'current estimate'} accent /><Metric label="Courses" value={activeCourses.length} detail="active this term" /><Metric label="Assessed" value={gradedItems} detail={gradedItems === 1 ? 'item recorded' : 'items recorded'} /></Surface></section>
       </div>
-    );
-  }
-
-  return (
-    <div className="p-4 md:p-7 space-y-5">
-      {/* Greeting */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 animate-fade-up">
-        <div>
-          <p className="text-sm text-base-content/50 mb-1">
-            {today.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' })}
-          </p>
-          <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight">
-            {greeting}{settings.studentName ? `, ${settings.studentName}` : ''}<span className="text-primary">.</span>
-          </h1>
-        </div>
-        {activeSemester && (
-          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-base-200/70 border border-base-300/60 backdrop-blur-sm self-start sm:self-auto">
-            <span className="w-2 h-2 rounded-full bg-primary bloom-dot text-primary" />
-            <span className="text-xs font-medium text-base-content/70">{activeSemester.name}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Permit expiry warning — glass surface, no DaisyUI alert bar */}
-      {hasPermitExpiry && daysUntilExpiry !== null && daysUntilExpiry <= 60 && (
-        <div className={`glass-card p-4 flex flex-col sm:flex-row sm:items-center gap-3 border-l-4 ${daysUntilExpiry <= 14 ? 'border-l-error' : 'border-l-warning'}`}>
-          <span className={`shrink-0 w-9 h-9 rounded-2xl flex items-center justify-center ${daysUntilExpiry <= 14 ? 'bg-error/12 text-error' : 'bg-warning/15 text-warning'}`}>
-            <AlertCircle size={18} />
-          </span>
-          <div className="flex-1 min-w-0">
-            <div className="font-semibold text-sm">
-              {daysUntilExpiry <= 0 ? 'Study permit has expired!' : `Study permit expires in ${daysUntilExpiry} day${daysUntilExpiry !== 1 ? 's' : ''}`}
-            </div>
-            <div className="text-xs text-base-content/60 mt-0.5">
-              {daysUntilExpiry <= 0
-                ? 'Contact your international student office immediately.'
-                : 'Contact your international student office to renew.'}
-            </div>
-          </div>
-          <button onClick={() => navigate('/immigration')} className="btn btn-sm btn-ghost pressable shrink-0 self-start sm:self-auto">Immigration Hub</button>
-        </div>
-      )}
-
-      {/* No active semester */}
-      {!activeSemester && (
-        <div className="glass-card p-4 flex flex-col sm:flex-row sm:items-center gap-3 border-l-4 border-l-info">
-          <span className="shrink-0 w-9 h-9 rounded-2xl bg-info/15 text-info flex items-center justify-center">
-            <AlertCircle size={18} />
-          </span>
-          <span className="flex-1 text-sm text-base-content/80">No active semester selected. Pick one from the sidebar or create a new one.</span>
-          <button onClick={() => setAddSemOpen(true)} className="btn btn-sm btn-primary pressable shrink-0 self-start sm:self-auto">Add Semester</button>
-        </div>
-      )}
-
-      {/* Quick stats */}
-      <div className="animate-fade-up" style={{ animationDelay: '60ms' }}>
-        <QuickStatsRow />
-      </div>
-
-      {/* Bento grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-5">
-        <div className="lg:col-span-5 animate-fade-up" style={{ animationDelay: '120ms' }}>
-          <GPASummaryWidget />
-        </div>
-        <div className="lg:col-span-4 animate-fade-up" style={{ animationDelay: '180ms' }}>
-          <TodaysScheduleWidget />
-        </div>
-        <div className="lg:col-span-3 animate-fade-up" style={{ animationDelay: '240ms' }}>
-          <UpcomingDeadlinesWidget />
-        </div>
-        <div className="lg:col-span-12 animate-fade-up" style={{ animationDelay: '300ms' }}>
-          <CourseStatusWidget />
-        </div>
-      </div>
-
-      {/* Add semester button */}
-      <div className="pt-1 flex justify-end">
-        <button onClick={() => setAddSemOpen(true)} className="btn btn-ghost btn-sm gap-2 rounded-full">
-          <PlusCircle size={14} /> New semester
-        </button>
-      </div>
-
-      <AddSemesterModal open={addSemOpen} onClose={() => setAddSemOpen(false)} />
+      <aside className="command-aside space-y-5"><section><SectionHeader eyebrow="Next best actions" title="Stay ahead, quietly" />{actions.length ? <Surface className="command-actions p-2 space-y-1">{actions.map(item => <ActionRow key={item.title} {...item} />)}</Surface> : <Surface><EmptyState title="You’re in good shape" detail="No urgent setup or deadlines need your attention." action={<Link to="/planner" className="btn btn-ghost btn-sm rounded-full">Review planner</Link>} /></Surface>}</section><section><SectionHeader eyebrow="Student advantage" title={settings.studentType === 'international' ? 'One decision, sourced' : 'Support that fits the term'} /><Surface className="command-advantage p-5"><StatusPill tone="primary">{settings.studentType === 'international' ? 'Immigration' : 'Student support'}</StatusPill><h3 className="font-semibold mt-3">{settings.studentType === 'international' ? 'Keep official guidance close to your next decision.' : 'Find support before the week gets heavy.'}</h3><p className="command-advantage-copy text-sm text-base-content/60 leading-6 mt-2">{settings.studentType === 'international' ? 'Review work conditions, your recorded permit date, and official sources alongside the rest of your academic context.' : 'Financial, wellness, and career resources are organised in one calm place—not buried in a portal.'}</p><button type="button" onClick={() => navigate(settings.studentType === 'international' ? '/life?tab=immigration' : '/life?tab=resources')} className="text-sm font-semibold text-primary mt-4">Open Life Hub →</button></Surface></section></aside>
     </div>
-  );
+    <AddSemesterModal open={addSemesterOpen} onClose={() => setAddSemesterOpen(false)} />
+  </div>;
 }

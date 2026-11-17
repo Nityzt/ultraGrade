@@ -6,10 +6,10 @@ import { useAuth } from './AuthContext.jsx';
 import { loadAll } from '../hooks/useSupabaseLoader.js';
 import * as sync from '../hooks/useSupabaseSync.js';
 
-const AppContext = createContext(null);
+export const AppContext = createContext(null);
 
 function generateId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2);
+  return globalThis.crypto?.randomUUID?.() || (Date.now().toString(36) + Math.random().toString(36).slice(2));
 }
 
 const DEFAULT_SETTINGS = {
@@ -23,18 +23,21 @@ const DEFAULT_SETTINGS = {
   permitExpiryDate: null,
   studentName: '',
   icsToken: null,
-  calendarConnected: false
+  calendarConnected: false,
+  aiConsentVersion: null,
+  aiConsentAt: null
 };
 
 export function AppProvider({ children }) {
   const { user } = useAuth();
+  const storageScope = user?.id || 'guest';
 
-  const [semesters, setSemesters] = useLocalStorage('ultragrade_semesters', []);
-  const [courses, setCourses] = useLocalStorage('ultragrade_courses', []);
-  const [timetableEntries, setTimetableEntries] = useLocalStorage('ultragrade_timetable', []);
-  const [tasks, setTasks] = useLocalStorage('ultragrade_tasks', []);
-  const [settings, setSettings] = useLocalStorage('ultragrade_settings', DEFAULT_SETTINGS);
-  const [studyHours, setStudyHours] = useLocalStorage('ultragrade_study_hours', {});
+  const [semesters, setSemesters] = useLocalStorage(`ultragrade_${storageScope}_semesters`, []);
+  const [courses, setCourses] = useLocalStorage(`ultragrade_${storageScope}_courses`, []);
+  const [timetableEntries, setTimetableEntries] = useLocalStorage(`ultragrade_${storageScope}_timetable`, []);
+  const [tasks, setTasks] = useLocalStorage(`ultragrade_${storageScope}_tasks`, []);
+  const [settings, setSettings] = useLocalStorage(`ultragrade_${storageScope}_settings`, DEFAULT_SETTINGS);
+  const [studyHours, setStudyHours] = useLocalStorage(`ultragrade_${storageScope}_study_hours`, {});
   // Track WHICH user's data is loaded, not just "loaded at all". `isLoaded` is
   // then derived synchronously from the current user — so the instant the user
   // changes (e.g. right after sign-in, when navigate('/') renders the route
@@ -44,6 +47,7 @@ export function AppProvider({ children }) {
   // (the "asks for student type every time" bug).
   const [loadedUserId, setLoadedUserId] = useState(undefined);
   const [syncError, setSyncError] = useState(null);
+  const retryQueue = useRef(new Map());
   const isLoaded = loadedUserId === (user?.id ?? null);
 
   // Load all data from Supabase when user signs in
@@ -66,7 +70,24 @@ export function AppProvider({ children }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  const onSyncError = (msg) => setSyncError(msg);
+  const onSyncError = (msg, retry) => {
+    if (retry) retryQueue.current.set(msg, retry);
+    setSyncError({ message: msg, retry });
+  };
+  useEffect(() => {
+    const flush = () => {
+      const queued = [...retryQueue.current.values()];
+      retryQueue.current.clear();
+      queued.forEach(fn => { try { fn(); } catch { /* next failure re-queues itself */ } });
+    };
+    window.addEventListener('online', flush);
+    return () => window.removeEventListener('online', flush);
+  }, []);
+  const isNetworkFailure = (error) => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return true;
+    const message = String(error?.message || error || '').toLowerCase();
+    return /network|fetch|timeout|offline|connection|failed to load/.test(message);
+  };
 
   // Derived state
   const activeSemester = semesters.find(s => s.id === settings.activeSemesterId) || semesters[0] || null;
@@ -98,11 +119,15 @@ export function AppProvider({ children }) {
   const afterParent = (id) =>
     (id && pendingSyncs.current.get(id)) || Promise.resolve({ error: null });
   const updateSettings = useCallback((updates) => {
-    const next = { ...settingsRef.current, ...updates };
+    const previous = settingsRef.current;
+    const next = { ...previous, ...updates };
     settingsRef.current = next;
     setSettings(next);
     if (user) sync.upsertProfile(next, user.id).then(({ error }) => {
-      if (error) onSyncError('Failed to save settings');
+      if (error) {
+        if (!isNetworkFailure(error)) { settingsRef.current = previous; setSettings(previous); }
+        onSyncError('Failed to save settings', () => updateSettings(updates));
+      }
     });
   }, [setSettings, user]);
 
@@ -132,7 +157,10 @@ export function AppProvider({ children }) {
     setSemesters(prev => [...prev, sem]);
     updateSettings({ activeSemesterId: sem.id });
     if (user) trackPending(sem.id, sync.insertSemester(sem, user.id)).then(({ error }) => {
-      if (error) { setSemesters(prev => prev.filter(s => s.id !== sem.id)); onSyncError('Failed to save semester'); }
+      if (error) {
+        if (!isNetworkFailure(error)) setSemesters(prev => prev.filter(s => s.id !== sem.id));
+        onSyncError('Failed to save semester', () => sync.insertSemester(sem, user.id));
+      }
     });
     return sem;
   }, [setSemesters, updateSettings, user]);
@@ -195,20 +223,37 @@ export function AppProvider({ children }) {
   }, [setCourses, activeSemester, user]);
 
   const updateCourse = useCallback((id, data) => {
+    const previous = courses.find(c => c.id === id);
     setCourses(prev => prev.map(c => c.id === id ? { ...c, ...data } : c));
     if (user) sync.updateCourse(id, data, user.id).then(({ error }) => {
-      if (error) onSyncError('Failed to update course');
+      if (error) {
+        if (!isNetworkFailure(error) && previous) setCourses(prev => prev.map(c => c.id === id ? previous : c));
+        onSyncError('Failed to update course', () => updateCourse(id, data));
+      }
     });
-  }, [setCourses, user]);
+  }, [setCourses, user, courses]);
 
   const deleteCourse = useCallback((id) => {
+    const previous = courses.find(c => c.id === id);
+    const previousTasks = tasks.filter(t => t.courseId === id);
+    const previousTimetable = timetableEntries.filter(e => e.courseId === id);
+    const previousStudyHours = studyHours[id];
     setCourses(prev => prev.filter(c => c.id !== id));
     setTasks(prev => prev.filter(t => t.courseId !== id));
     setTimetableEntries(prev => prev.filter(e => e.courseId !== id));
+    setStudyHours(prev => { const next = { ...prev }; delete next[id]; return next; });
     if (user) sync.deleteCourse(id, user.id).then(({ error }) => {
-      if (error) onSyncError('Failed to delete course');
+      if (error) {
+        if (!isNetworkFailure(error)) {
+          if (previous) setCourses(prev => [...prev, previous]);
+          if (previousTasks.length) setTasks(prev => [...prev, ...previousTasks]);
+          if (previousTimetable.length) setTimetableEntries(prev => [...prev, ...previousTimetable]);
+          if (previousStudyHours !== undefined) setStudyHours(prev => ({ ...prev, [id]: previousStudyHours }));
+        }
+        onSyncError('Failed to delete course', () => deleteCourse(id));
+      }
     });
-  }, [setCourses, setTasks, setTimetableEntries, user]);
+  }, [setCourses, setTasks, setTimetableEntries, setStudyHours, user, courses, tasks, timetableEntries, studyHours]);
 
   // ── Categories ────────────────────────────────────────────────────────────
   const addCategory = useCallback((courseId, data) => {
@@ -354,17 +399,24 @@ export function AppProvider({ children }) {
     if (user) afterParent(task.courseId || task.semesterId).then(({ error: parentErr }) =>
       parentErr ? { error: parentErr } : sync.insertTask(task, user.id)
     ).then(({ error }) => {
-      if (error) { setTasks(prev => prev.filter(t => t.id !== task.id)); onSyncError('Failed to save task'); }
+      if (error) {
+        if (!isNetworkFailure(error)) setTasks(prev => prev.filter(t => t.id !== task.id));
+        onSyncError('Failed to save task', () => sync.insertTask(task, user.id));
+      }
     });
     return task;
   }, [setTasks, activeSemester, user]);
 
   const updateTask = useCallback((id, data) => {
+    const previous = tasks.find(t => t.id === id);
     setTasks(prev => prev.map(t => t.id === id ? { ...t, ...data } : t));
     if (user) sync.updateTask(id, data, user.id).then(({ error }) => {
-      if (error) onSyncError('Failed to update task');
+      if (error) {
+        if (!isNetworkFailure(error) && previous) setTasks(prev => prev.map(t => t.id === id ? previous : t));
+        onSyncError('Failed to update task', () => updateTask(id, data));
+      }
     });
-  }, [setTasks, user]);
+  }, [setTasks, user, tasks]);
 
   const deleteTask = useCallback((id) => {
     setTasks(prev => prev.filter(t => t.id !== id));
@@ -380,12 +432,42 @@ export function AppProvider({ children }) {
     const completedAt = completed ? new Date().toISOString() : null;
     setTasks(prev => prev.map(t => t.id === id ? { ...t, completed, completedAt } : t));
     if (user) sync.updateTask(id, { completed, completedAt }, user.id).then(({ error }) => {
-      if (error) onSyncError('Failed to update task');
+      if (error) {
+        if (!isNetworkFailure(error)) setTasks(prev => prev.map(t => t.id === id ? task : t));
+        onSyncError('Failed to update task', () => toggleTaskComplete(id));
+      }
     });
   }, [setTasks, tasks, user]);
 
   // ── Outline import ────────────────────────────────────────────────────────
   const importFromOutline = useCallback((parsed) => {
+    const normalizedCode = String(parsed.courseCode || '').trim().toLowerCase().replace(/\s+/g, '');
+    const existing = normalizedCode && courses.find(c =>
+      c.semesterId === activeSemester?.id && String(c.code || '').trim().toLowerCase().replace(/\s+/g, '') === normalizedCode
+    );
+    if (existing) {
+      // Re-imports are additive and non-destructive: preserve entered grades,
+      // tasks, and classes while filling only information that is missing.
+      updateCourse(existing.id, {
+        ...(parsed.professor && !existing.professor ? { professor: parsed.professor } : {}),
+        ...(parsed.creditHours && !existing.creditHours ? { creditHours: parsed.creditHours } : {}),
+        outlineUploaded: true,
+      });
+      const existingCategories = existing.categories || [];
+      for (const assessment of parsed.assessments || []) {
+        const duplicate = existingCategories.some(c => c.name.trim().toLowerCase() === assessment.name.trim().toLowerCase());
+        if (!duplicate) addCategory(existing.id, { name: assessment.name, weight: assessment.weight, dropLowest: false, grades: [] });
+      }
+      for (const sched of parsed.schedule || []) {
+        const duplicate = timetableEntries.some(e => e.courseId === existing.id && e.dayOfWeek === sched.dayOfWeek && e.startTime === sched.startTime && e.endTime === sched.endTime);
+        if (!duplicate) addTimetableEntry({ label: `${existing.code} ${sched.type || 'Lecture'}`, courseId: existing.id, dayOfWeek: sched.dayOfWeek, startTime: sched.startTime, endTime: sched.endTime, location: sched.location || '', professor: existing.professor, color: existing.color, type: sched.type || 'lecture' });
+      }
+      for (const dl of parsed.deadlines || []) {
+        const duplicate = tasks.some(t => t.courseId === existing.id && t.dueDate === dl.date && t.title.trim().toLowerCase() === dl.title.trim().toLowerCase());
+        if (!duplicate) addTask({ title: dl.title, type: dl.type || 'assignment', dueDate: dl.date, courseId: existing.id });
+      }
+      return existing;
+    }
     const courseData = {
       code: parsed.courseCode || '',
       name: parsed.courseName || '',
@@ -417,7 +499,7 @@ export function AppProvider({ children }) {
     }
 
     return course;
-  }, [addCourse, addTimetableEntry, addTask]);
+  }, [addCourse, addCategory, addTimetableEntry, addTask, updateCourse, courses, activeSemester, timetableEntries, tasks]);
 
   // ── Study hours ───────────────────────────────────────────────────────────
   const addStudyTime = useCallback((courseId, seconds) => {
