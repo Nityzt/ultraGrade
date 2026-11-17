@@ -14,6 +14,7 @@ ultraGrade should feel **minimal and flat**:
 3. Stay inside the files your issue **owns** (each issue lists them). If you have to touch a file another issue owns, keep the edit small and mention it in the PR description.
 4. Before you ask for review, run the [verification checklist](#verification-checklist-every-pr).
 5. When an issue lists **dependencies**, merge those first.
+6. GitHub only auto-closes issues for PRs merged into the default branch (`main`). After a PR merges into `ui/flat-overhaul`, **close its issue by hand** with a link to the PR. The tracking issue (#12) lists the order and who owns which files.
 
 `ui/flat-overhaul` merges into `main` only when the final verification issue is done.
 
